@@ -325,7 +325,9 @@ const runFinalSteps = async (env: Environment) => {
 			getManifest(browserName, env.development)
 		);
 		if (env.production) {
-			const zipPath = path.resolve(BASE_PATH, 'build', `${browserName}.zip`);
+			const distDir = path.resolve(BASE_PATH, 'dist');
+			await fs.ensureDir(distDir);
+			const zipPath = path.resolve(distDir, `${browserName}.zip`);
 			try {
 				await fs.remove(zipPath);
 				const archive = archiver('zip');
