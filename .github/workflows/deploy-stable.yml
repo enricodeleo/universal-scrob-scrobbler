@@ -32,7 +32,7 @@ jobs:
       - name: Deploy version
         uses: ./.github/actions/deploy-stable
         with:
-          trakt-tools-bot-token: '${{ secrets.TRAKT_TOOLS_BOT_TOKEN }}'
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
       - name: Upload to Chrome store
         env:
           CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}

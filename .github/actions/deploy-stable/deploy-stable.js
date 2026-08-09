@@ -1,17 +1,18 @@
 const { getInput, setFailed } = require('@actions/core');
-const { getOctokit } = require('@actions/github');
+const { context, getOctokit } = require('@actions/github');
 const fs = require('fs');
 const path = require('path');
 const packageJson = require('../../../package.json');
 
 const defaultParams = {
-	owner: packageJson.author,
-	repo: packageJson.name,
+	...context.repo,
 };
 
 const deployStable = async () => {
-	const octokit = getOctokit(getInput('trakt-tools-bot-token'), {
-		userAgent: 'universal-trakt-scrobbler',
+	const token =
+		getInput('github-token') || getInput('trakt-tools-bot-token') || process.env.GITHUB_TOKEN;
+	const octokit = getOctokit(token, {
+		userAgent: 'universal-scrob-scrobbler',
 	});
 
 	console.log('Generating release...');

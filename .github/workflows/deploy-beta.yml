@@ -31,4 +31,4 @@ jobs:
       - name: Deploy version
         uses: ./.github/actions/deploy-beta
         with:
-          trakt-tools-bot-token: '${{ secrets.TRAKT_TOOLS_BOT_TOKEN }}'
+          github-token: '${{ secrets.GITHUB_TOKEN }}'

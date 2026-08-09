@@ -1,9 +1,10 @@
 name: 'Deploy stable'
 description: 'Deploys a stable version'
 inputs:
-  trakt-tools-bot-token:
+  github-token:
     description: 'Token for generating the release'
-    required: true
+    required: false
+    default: ${{ github.token }}
 runs:
   using: 'node20'
   main: 'deploy-stable.js'

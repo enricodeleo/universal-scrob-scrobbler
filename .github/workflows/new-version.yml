@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.TRAKT_TOOLS_BOT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v2
         with:
           version: 9
@@ -38,8 +38,8 @@ jobs:
         run: pnpm run fix
       - name: Setup git config
         run: |
-          git config user.name "trakt-tools-bot"
-          git config user.email "89098662+trakt-tools-bot@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Commit and push changes to package.json
         run: |
           version=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' package.json)
