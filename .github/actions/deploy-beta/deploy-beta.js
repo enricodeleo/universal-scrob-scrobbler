@@ -31,10 +31,14 @@ const deployBeta = async () => {
 
 	console.log('Deleting preious beta tag...');
 
-	await octokit.rest.git.deleteRef({
-		...defaultParams,
-		ref: 'tags/beta',
-	});
+	try {
+		await octokit.rest.git.deleteRef({
+			...defaultParams,
+			ref: 'tags/beta',
+		});
+	} catch (err) {
+		console.log('Beta tag does not exist or was already deleted:', err.message);
+	}
 
 	console.log('Generating release...');
 

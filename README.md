@@ -39,7 +39,7 @@ Extension will be enabled until you restart Firefox.
 - [Loading the extension manually in Chrome](#loading-the-extension-manually-in-chrome)
 - [Loading the extension manually in Firefox](#loading-the-extension-manually-in-firefox)
 - [Table of Contents](#table-of-contents)
-- [What is Universal Scrobbler?](#what-is-universal-scrobbler)
+- [What is Universal Scrob Scrobbler?](#what-is-universal-scrob-scrobbler)
 - [Why do I need this extension?](#why-do-i-need-this-extension)
 - [Which streaming services are supported?](#which-streaming-services-are-supported)
 - [How does the extension work?](#how-does-the-extension-work)
@@ -50,7 +50,7 @@ Extension will be enabled until you restart Firefox.
   - [How to add scrobbler/sync to streaming services](#how-to-add-scrobblersync-to-streaming-services)
 - [Credits](#credits)
 
-### What is Universal Scrobbler?
+### What is Universal Scrob Scrobbler?
 
 An extension that allows you to automatically scrobble TV shows and movies that you are watching, and sync your history, from your favorite streaming services (such as Netflix, Amazon Prime Video, Disney+, etc.) to your Scrob server.
 
