@@ -3,7 +3,7 @@
 		"message": "About"
 	},
 	"aboutMessage": {
-		"message": "Send your activity from your favorite streaming services to Trakt.tv!"
+		"message": "Send your activity from your favorite streaming services to Scrob!"
 	},
 	"add": {
 		"message": "Add"
@@ -20,14 +20,8 @@
 	"addWithReleaseDateMissing": {
 		"message": "Add with release date only for items that are missing the watched date."
 	},
-	"allowRollbar": {
-		"message": "Allow Rollbar to collect information about bugs."
-	},
-	"allowRollbarDescription": {
-		"message": "With this option enabled, whenever a bug occurs, information about it will be collected and sent to us, so that we can fix it faster and improve the extension. This information includes: when the bug happened, the traceback of the bug, the name and version  of your browser, and the name of your OS. This data is not shared with any other service."
-	},
 	"appDescription": {
-		"message": "A universal sync for Trakt.tv."
+		"message": "A universal sync for Scrob."
 	},
 	"autoSync": {
 		"message": "Automatic Sync"
@@ -121,7 +115,7 @@
 		"message": "Failed to correct item."
 	},
 	"correctionDialogContent": {
-		"message": "Enter the correct Trakt URL for $TITLE$ in the field below.",
+		"message": "Enter the correct Scrob URL for $TITLE$ in the field below.",
 		"placeholders": {
 			"title": {
 				"content": "$1"
@@ -129,7 +123,7 @@
 		}
 	},
 	"correctionDialogContentWithSuggestions": {
-		"message": "Enter the correct Trakt URL for $TITLE$ in the field below or use one of the suggestions.",
+		"message": "Enter the correct Scrob URL for $TITLE$ in the field below or use one of the suggestions.",
 		"placeholders": {
 			"title": {
 				"content": "$1"
@@ -137,7 +131,7 @@
 		}
 	},
 	"correctionDialogSyncedWarning": {
-		"message": "WARNING: You are correcting an item that was already synced. If you proceed, the previously synced item will be removed from your Trakt history."
+		"message": "WARNING: You are correcting an item that was already synced. If you proceed, the previously synced item will be removed from your Scrob history."
 	},
 	"couldNotScrobble": {
 		"message": "Could not scrobble."
@@ -158,13 +152,13 @@
 		"message": "An error has occurred. :("
 	},
 	"errorNotificationLogin": {
-		"message": "Looks like you're not logged in. Please open the extension and login with your Trakt account."
+		"message": "Looks like you're not logged in. Please open the extension and login with your Scrob account."
 	},
 	"errorNotificationNotFound": {
-		"message": "Oh snap! We couldn't find what you're watching in Trakt. Please leave a report with the title of the item."
+		"message": "Oh snap! We couldn't find what you're watching in Scrob. Please leave a report with the title of the item."
 	},
 	"errorNotificationServers": {
-		"message": "We couldn't talk to Trakt servers. We're trying to fix it, please try again later."
+		"message": "We couldn't talk to Scrob servers. We're trying to fix it, please try again later."
 	},
 	"from": {
 		"message": "from"
@@ -204,8 +198,8 @@
 	"home": {
 		"message": "Home"
 	},
-	"invalidTraktUrl": {
-		"message": "Please enter a valid Trakt URL!"
+	"invalidScrobUrl": {
+		"message": "Please enter a valid Scrob URL!"
 	},
 	"isThisWrong": {
 		"message": "Is this wrong?"
@@ -237,17 +231,14 @@
 	"loadImagesDescription": {
 		"message": "With this option disabled, images for the scrobbling item and for the history items will not be loaded. This is useful for slower connections, where loading images significantly slows down the extension."
 	},
-	"loadTraktHistoryError": {
-		"message": "Failed to load Trakt history."
+	"loadScrobHistoryError": {
+		"message": "Failed to load Scrob history."
 	},
 	"loadingHistory": {
 		"message": "Loading history"
 	},
-	"loadingSuggestions": {
-		"message": "Loading suggestions"
-	},
 	"login": {
-		"message": "Login with Trakt.tv"
+		"message": "Connect to Scrob"
 	},
 	"logout": {
 		"message": "Logout"
@@ -380,12 +371,6 @@
 	},
 	"selectService": {
 		"message": "Select a streaming service to sync from:"
-	},
-	"sendReceiveSuggestions": {
-		"message": "Send / receive correction suggestions."
-	},
-	"sendReceiveSuggestionsDescription": {
-		"message": "With this option enabled, whenever you update a wrong item, the correction will be sent to a Google Cloud database so that other users can receive correction suggestions. This option is also required to receive those correction suggestions."
 	},
 	"service": {
 		"message": "Service"

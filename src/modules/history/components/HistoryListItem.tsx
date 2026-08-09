@@ -46,16 +46,6 @@ const _HistoryListItem = ({
 		});
 	};
 
-	const openCorrectionDialog = async () => {
-		if (!item) {
-			return;
-		}
-		await Shared.events.dispatch('CORRECTION_DIALOG_SHOW', null, {
-			item,
-			isScrobblingItem: false,
-		});
-	};
-
 	useEffect(() => {
 		const startListeners = () => {
 			Shared.events.subscribe('ITEMS_LOAD', null, onItemsLoad);
@@ -76,8 +66,8 @@ const _HistoryListItem = ({
 		return stopListeners;
 	}, []);
 
-	const [statusColor, statusMessageName]: [string, MessageName] = item?.trakt
-		? item?.trakt?.watchedAt
+	const [statusColor, statusMessageName]: [string, MessageName] = item?.scrob
+		? item?.scrob?.watchedAt
 			? [green[500], 'itemSynced']
 			: [red[500], 'itemNotSynced']
 		: [grey[700], 'itemSyncStatusUnknown'];
@@ -94,7 +84,6 @@ const _HistoryListItem = ({
 		return <></>;
 	}
 
-	// Combine react-window's translateY with our translateX
 	const combinedStyle = {
 		...style,
 		left: '50%',
@@ -175,11 +164,9 @@ const _HistoryListItem = ({
 					</Tooltip>
 					<HistoryListItemCard
 						isLoading={item?.isLoading ?? true}
-						item={item?.trakt}
-						name="Trakt"
-						suggestions={item?.suggestions}
-						imageUrl={item?.trakt?.imageUrl}
-						openCorrectionDialog={openCorrectionDialog}
+						item={item?.scrob}
+						name="Scrob"
+						imageUrl={item?.scrob?.imageUrl}
 					/>
 				</>
 			)}

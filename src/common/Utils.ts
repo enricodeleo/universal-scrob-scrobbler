@@ -67,7 +67,7 @@ class _Utils {
 	}
 
 	/**
-	 * Converts for required format for trakt api
+	 * Converts for required format for Scrob API
 	 */
 	convertToISOString(unixDate: number | undefined) {
 		if (!unixDate) {

@@ -94,7 +94,7 @@ export const MissingWatchedDateDialog = (): JSX.Element => {
 			switch (dialog.dateType) {
 				case 'release-date': {
 					for (const item of newItems) {
-						const releaseDate = item.trakt?.releaseDate;
+						const releaseDate = item.scrob?.releaseDate;
 						if (!releaseDate) {
 							throw new Error('Missing release date');
 						}
@@ -119,11 +119,10 @@ export const MissingWatchedDateDialog = (): JSX.Element => {
 					}
 					break;
 				}
-				// no-default
 			}
 			for (const item of newItems) {
-				if (item.trakt) {
-					delete item.trakt.watchedAt;
+				if (item.scrob) {
+					delete item.scrob.watchedAt;
 				}
 			}
 			await Shared.events.dispatch('MISSING_WATCHED_DATE_ADDED', null, {

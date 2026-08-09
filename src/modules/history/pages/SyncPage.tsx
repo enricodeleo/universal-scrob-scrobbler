@@ -1,4 +1,3 @@
-import { CorrectionDialog } from '@components/CorrectionDialog';
 import { HistoryActions } from '@components/HistoryActions';
 import { HistoryList } from '@components/HistoryList';
 import { HistoryOptionsList } from '@components/HistoryOptionsList';
@@ -8,7 +7,6 @@ export const SyncPage = (): JSX.Element => {
 	return (
 		<>
 			<MissingWatchedDateDialog />
-			<CorrectionDialog />
 			<HistoryOptionsList />
 			<HistoryList />
 			<HistoryActions />

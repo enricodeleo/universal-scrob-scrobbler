@@ -1,6 +1,4 @@
-import { Suggestion } from '@apis/CorrectionApi';
-import { TraktAuthDetails } from '@apis/TraktAuth';
-import { TraktSettings } from '@apis/TraktSettings';
+import { ScrobAuthDetails } from '@apis/ScrobAuth';
 import { CacheStorageValues } from '@common/Cache';
 import { I18N } from '@common/I18N';
 import { Messaging } from '@common/Messaging';
@@ -9,14 +7,9 @@ import { Shared } from '@common/Shared';
 import { Utils } from '@common/Utils';
 import { ScrobbleItemValues } from '@models/Item';
 import { getService, getServices } from '@models/Service';
-import { TraktItemValues } from '@models/TraktItem';
 import '@services';
 import { PartialDeep } from 'type-fest';
 import browser, { Manifest as WebExtManifest } from 'webextension-polyfill';
-
-export type StorageValues = StorageValuesV12;
-export type StorageValuesOptions = StorageValuesOptionsV4;
-export type StorageValuesSyncOptions = StorageValuesSyncOptionsV3;
 
 export type KinoPubAuthDetails = {
 	access_token: string;
@@ -24,111 +17,6 @@ export type KinoPubAuthDetails = {
 	expires_in: number;
 	refresh_token: string;
 	created_at: number;
-};
-
-export type StorageValuesV12 = Omit<StorageValuesV11, 'version'> & {
-	version?: 12;
-};
-
-export type StorageValuesV11 = Omit<StorageValuesV10, 'version'> & {
-	version?: 11;
-	kinoPubAuth?: KinoPubAuthDetails;
-};
-
-export type StorageValuesV10 = Omit<StorageValuesV9, 'version' | 'options'> & {
-	version?: 10;
-	options?: StorageValuesOptionsV4;
-};
-
-export type StorageValuesV9 = Omit<StorageValuesV8, 'version'> & {
-	version?: 9;
-};
-
-export type StorageValuesV8 = Omit<StorageValuesV7, 'version'> & {
-	version?: 8;
-};
-
-export type StorageValuesV7 = Omit<StorageValuesV6, 'version' | 'hboGoApiParams'> & {
-	version?: 7;
-};
-
-export type StorageValuesV6 = Omit<
-	StorageValuesV5,
-	'version' | 'syncOptions' | 'scrobblingItem'
-> & {
-	version?: 6;
-	syncOptions?: StorageValuesSyncOptionsV3;
-	scrobblingDetails?: ScrobblingDetails;
-} & CacheStorageValues;
-
-export type StorageValuesV5 = Omit<StorageValuesV4, 'version' | 'traktCache'> & {
-	version?: 5;
-} & CacheStorageValues;
-
-export type StorageValuesV4 = Omit<StorageValuesV3, 'version' | 'correctItems'> & {
-	version?: 4;
-	corrections?: Partial<Record<string, Suggestion>>;
-};
-
-export type StorageValuesV3 = Omit<StorageValuesV2, 'version' | 'options'> & {
-	version?: 3;
-	options?: StorageValuesOptionsV3;
-};
-
-export type StorageValuesV2 = Omit<
-	StorageValuesV1,
-	'version' | 'options' | 'syncOptions' | 'traktCache' | 'correctUrls' | 'scrobblingItem'
-> & {
-	version?: 2;
-	options?: StorageValuesOptionsV2;
-	syncOptions?: StorageValuesSyncOptionsV2;
-	traktCache?: Record<string, TraktItemValues>;
-	syncCache?: SyncCacheValue;
-	correctItems?: Partial<Record<string, Record<string, CorrectItem>>>;
-	scrobblingItem?: ScrobbleItemValues;
-};
-
-export type StorageValuesV1 = {
-	version?: 1;
-	auth?: TraktAuthDetails;
-	options?: StorageValuesOptionsV1;
-	syncOptions?: StorageValuesSyncOptionsV1;
-	traktCache?: unknown;
-	correctUrls?: Partial<Record<string, Record<string, string>>>;
-	scrobblingItem?: unknown;
-	scrobblingTabId?: number;
-	hboGoApiParams?: unknown;
-};
-
-export interface ScrobblingDetails {
-	item: ScrobbleItemValues;
-	tabId: number | null;
-	isPaused: boolean;
-}
-
-export type StorageValuesOptionsV4 = StorageValuesOptionsV3 & {
-	loadImages: boolean;
-};
-
-export type StorageValuesOptionsV3 = Omit<StorageValuesOptionsV2, 'streamingServices'> & {
-	services: Record<string, ServiceValue>;
-};
-
-export type StorageValuesOptionsV2 = Omit<
-	StorageValuesOptionsV1,
-	'streamingServices' | 'disableScrobbling'
-> & {
-	streamingServices: Record<string, ServiceValue>;
-	theme: ThemeValue;
-};
-
-export type StorageValuesOptionsV1 = {
-	streamingServices: Record<string, boolean>;
-	disableScrobbling: boolean;
-	showNotifications: boolean;
-	sendReceiveSuggestions: boolean;
-	allowRollbar: boolean;
-	grantCookies: boolean;
 };
 
 export type ServiceValue = {
@@ -142,18 +30,26 @@ export type ServiceValue = {
 
 export type ThemeValue = 'light' | 'dark' | 'system';
 
-export type StorageValuesSyncOptionsV3 = Omit<StorageValuesSyncOptionsV2, 'itemsPerLoad'>;
+export type StorageValuesOptions = {
+	services: Record<string, ServiceValue>;
+	showNotifications: boolean;
+	loadImages: boolean;
+	theme: ThemeValue;
+	grantCookies: boolean;
+};
 
-export type StorageValuesSyncOptionsV2 = StorageValuesSyncOptionsV1 & {
+export type StorageValuesSyncOptions = {
+	hideSynced: boolean;
+	addWithReleaseDate: boolean;
 	addWithReleaseDateMissing: boolean;
 	minPercentageWatched: number;
 };
 
-export type StorageValuesSyncOptionsV1 = {
-	addWithReleaseDate: boolean;
-	hideSynced: boolean;
-	itemsPerLoad: number;
-};
+export interface ScrobblingDetails {
+	item: ScrobbleItemValues;
+	tabId: number | null;
+	isPaused: boolean;
+}
 
 export type SyncCacheValue = {
 	items: ScrobbleItemValues[];
@@ -162,9 +58,20 @@ export type SyncCacheValue = {
 
 export type CorrectItem = {
 	type: 'episode' | 'movie';
-	traktId?: number;
+	scrobId?: number;
 	url: string;
 };
+
+export type StorageValues = {
+	version?: number;
+	auth?: ScrobAuthDetails;
+	options?: StorageValuesOptions;
+	syncOptions?: StorageValuesSyncOptions;
+	scrobblingDetails?: ScrobblingDetails;
+	syncCache?: SyncCacheValue;
+	kinoPubAuth?: KinoPubAuthDetails;
+	autoSyncCache?: Record<string, SyncCacheValue>;
+} & CacheStorageValues;
 
 export type OptionsDetails = {
 	[K in keyof StorageValuesOptions]: OptionDetails<StorageValuesOptions, K>;
@@ -183,53 +90,36 @@ export type OptionDetails<T, K extends keyof T = keyof T> =
 
 export type OptionDetailsByType<
 	T,
-	U extends OptionDetails<T, K>['type'],
+	U extends OptionDetails<T>['type'],
 	K extends keyof T = keyof T,
-> = U extends 'select'
-	? SelectOptionDetails<T, K>
-	: U extends 'switch'
-		? SwitchOptionDetails<T, K>
-		: U extends 'text'
-			? TextFieldOptionDetails<T, K>
-			: U extends 'number'
-				? NumericTextFieldOptionDetails<T, K>
-				: U extends 'custom'
-					? CustomOptionDetails<T, K>
-					: OptionDetails<T, K>;
+> = Extract<OptionDetails<T, K>, { type: U }>;
 
-export type BaseOptionDetails<T, K extends keyof T> = {
+export interface BaseOptionDetails<T, K extends keyof T> {
+	type: 'select' | 'switch' | 'text' | 'number' | 'custom';
 	id: K;
 	value: T[K];
-	origins?: string[];
-	permissions?: WebExtManifest.OptionalPermission[];
 	dependencies?: (keyof T)[];
+	permissions?: WebExtManifest.OptionalPermission[];
+	origins?: string[];
 	doShow: boolean;
-};
+}
 
-export interface SelectOptionDetails<T, K extends keyof T>
-	extends Omit<BaseOptionDetails<T, K>, 'value'> {
+export interface SelectOptionDetails<T, K extends keyof T> extends BaseOptionDetails<T, K> {
 	type: 'select';
-	value: string;
 	choices: Record<string, string>;
 }
 
-export interface SwitchOptionDetails<T, K extends keyof T>
-	extends Omit<BaseOptionDetails<T, K>, 'value'> {
+export interface SwitchOptionDetails<T, K extends keyof T> extends BaseOptionDetails<T, K> {
 	type: 'switch';
-	value: boolean;
 }
 
-export interface TextFieldOptionDetails<T, K extends keyof T>
-	extends Omit<BaseOptionDetails<T, K>, 'value'> {
+export interface TextFieldOptionDetails<T, K extends keyof T> extends BaseOptionDetails<T, K> {
 	type: 'text';
-	value: string;
 }
 
 export interface NumericTextFieldOptionDetails<T, K extends keyof T>
-	extends Omit<BaseOptionDetails<T, K>, 'value'> {
+	extends BaseOptionDetails<T, K> {
 	type: 'number';
-	value: number;
-	isFloat?: number;
 	minValue?: number;
 	maxValue?: number;
 	step?: number;
@@ -244,7 +134,7 @@ export type BrowserStorageSetValues = Omit<StorageValues, 'options' | 'syncOptio
 export type BrowserStorageRemoveKey = Exclude<keyof StorageValues, 'options' | 'syncOptions'>;
 
 class _BrowserStorage {
-	readonly currentVersion = 12;
+	readonly currentVersion = 1;
 
 	isSyncAvailable: boolean;
 	options = {} as StorageValuesOptions;
@@ -261,332 +151,9 @@ class _BrowserStorage {
 			Shared.tabId = await Messaging.toExtension({ action: 'get-tab-id' });
 		}
 		await this.sync();
-		await this.upgradeOrDowngrade();
 		await this.loadOptions();
 		await this.loadSyncOptions();
 		await Session.checkLogin();
-		if (Session.isLoggedIn) {
-			Shared.dateFormat = await TraktSettings.getTimeAndDateFormat();
-		}
-	}
-
-	async upgradeOrDowngrade() {
-		const { version = 1 } = await this.get('version');
-
-		console.log(`Current storage version: v${version.toString()}`);
-
-		if (version < this.currentVersion) {
-			await this.upgrade(version);
-		} else if (version > this.currentVersion) {
-			await this.downgrade(version);
-		}
-	}
-
-	/**
-	 * `objectVX` and `objectVY` are always the same object.
-	 * They are only separated by type, to make it easier to understand the upgrade process.
-	 */
-	async upgrade(version: number) {
-		if (version < 2 && this.currentVersion >= 2) {
-			console.log('Upgrading to v2...');
-
-			await this.doRemove(
-				['traktCache', 'correctUrls', 'scrobblingItem'] as unknown as (keyof StorageValues)[],
-				true
-			);
-
-			const values = await this.get('options');
-
-			const optionsV1 = values.options as Partial<StorageValuesOptionsV1> | undefined;
-			const optionsV2 = values.options as Partial<StorageValuesOptionsV2> | undefined;
-			if (optionsV1 && optionsV2) {
-				if (optionsV1.streamingServices && optionsV2.streamingServices) {
-					for (const [id, value] of Object.entries(optionsV1.streamingServices)) {
-						if (typeof value !== 'boolean') {
-							continue;
-						}
-
-						optionsV2.streamingServices[id] = {
-							scrobble: value,
-							sync: value,
-							autoSync: false,
-							autoSyncDays: 0,
-							lastSync: 0,
-							lastSyncId: '',
-						};
-					}
-				}
-
-				delete optionsV1.disableScrobbling;
-
-				await this.doSet({ options: optionsV2 as unknown as StorageValuesOptions }, true);
-			}
-		}
-
-		if (version < 3 && this.currentVersion >= 3) {
-			console.log('Upgrading to v3...');
-
-			const values = await this.get('options');
-
-			const optionsV2 = values.options as Partial<StorageValuesOptionsV2> | undefined;
-			const optionsV3 = values.options as Partial<StorageValuesOptionsV3> | undefined;
-			if (optionsV2 && optionsV3) {
-				optionsV3.services = optionsV2.streamingServices;
-
-				delete optionsV2.streamingServices;
-
-				await this.doSet({ options: optionsV3 as unknown as StorageValuesOptions }, true);
-			}
-		}
-
-		if (version < 4 && this.currentVersion >= 4) {
-			console.log('Upgrading to v4...');
-
-			await this.doRemove(['correctItems'] as unknown as (keyof StorageValues)[], true);
-		}
-
-		if (version < 5 && this.currentVersion >= 5) {
-			console.log('Upgrading to v5...');
-
-			await this.doRemove(['traktCache'] as unknown as (keyof StorageValues)[], true);
-		}
-
-		if (version < 6 && this.currentVersion >= 6) {
-			console.log('Upgrading to v6...');
-
-			await this.doRemove(['scrobblingItem'] as unknown as (keyof StorageValues)[], true);
-
-			const values = await this.get('syncOptions');
-
-			const optionsV2 = values.syncOptions as Partial<StorageValuesSyncOptionsV2> | undefined;
-			const optionsV3 = values.syncOptions as Partial<StorageValuesSyncOptionsV3> | undefined;
-			if (optionsV2 && optionsV3) {
-				delete optionsV2.itemsPerLoad;
-
-				await this.doSet({ syncOptions: optionsV3 as unknown as StorageValuesSyncOptions }, true);
-			}
-		}
-
-		if (version < 7 && this.currentVersion >= 7) {
-			console.log('Upgrading to v7...');
-
-			const { options } = await this.get('options');
-
-			if (options?.services && 'hbo-go' in options.services) {
-				options.services['hbo-max'] = options.services['hbo-go'];
-				options.services['hbo-max'].lastSync = 0;
-				options.services['hbo-max'].lastSyncId = '';
-				delete options.services['hbo-go'];
-
-				await this.doSet({ options }, true);
-			}
-		}
-
-		if (version < 8 && this.currentVersion >= 8) {
-			console.log('Upgrading to v8...');
-
-			const { options } = await this.get('options');
-
-			if (options?.services && 'telia-play' in options.services) {
-				delete options.services['telia-play'];
-
-				await this.doSet({ options }, true);
-			}
-		}
-
-		if (version < 9 && this.currentVersion >= 9) {
-			console.log('Upgrading to v9...');
-
-			await this.doRemove(['itemsCache', 'syncCache', 'traktItemsCache'], true);
-		}
-
-		if (version < 10 && this.currentVersion >= 10) {
-			console.log('Upgrading to v10...');
-		}
-
-		if (version < 11 && this.currentVersion >= 11) {
-			console.log('Upgrading to v11...');
-
-			const { options } = await this.get('options');
-
-			if (options?.services && 'crunchyroll-beta' in options.services) {
-				delete options.services['crunchyroll-beta'];
-
-				await this.doSet({ options }, true);
-			}
-		}
-
-		if (version < 12 && this.currentVersion >= 12) {
-			console.log('Upgrading to v12...');
-
-			// `*://api.service-kp.com/*` was moved from the required permissions to the optional
-			// ones, so it might no longer be granted. `permissions.request()` requires a user
-			// gesture, so disable the service instead - re-enabling it in the options will
-			// request the permission again.
-			const { options } = await this.get('options');
-
-			const kinoPub = options?.services?.['kino-pub'];
-			if (kinoPub && (kinoPub.scrobble || kinoPub.sync)) {
-				const hasPermission = await browser.permissions.contains({
-					origins: ['*://api.service-kp.com/*'],
-				});
-				if (!hasPermission) {
-					kinoPub.scrobble = false;
-					kinoPub.sync = false;
-					kinoPub.autoSync = false;
-
-					await this.doSet({ options }, true);
-				}
-			}
-		}
-
-		await this.set({ version: this.currentVersion }, true);
-
-		console.log('Upgraded!');
-	}
-
-	/**
-	 * `objectVX` and `objectVY` are always the same object.
-	 * They are only separated by type, to make it easier to understand the downgrade process.
-	 */
-	async downgrade(version: number) {
-		if (version > 10 && this.currentVersion <= 10) {
-			console.log('Downgrading to v10...');
-			const values = await this.get('options');
-			const options = values.options;
-			if (options) {
-				delete options.services['crunchyroll'];
-				await this.doSet({ options: options as unknown as StorageValuesOptions }, true);
-			}
-		}
-
-		if (version > 9 && this.currentVersion <= 9) {
-			console.log('Downgrading to v9...');
-
-			const values = await this.get('options');
-
-			const optionsV3 = values.options as Partial<StorageValuesOptionsV3> | undefined;
-			const optionsV4 = values.options as Partial<StorageValuesOptionsV4> | undefined;
-			if (optionsV3 && optionsV4) {
-				delete optionsV4.loadImages;
-
-				await this.doSet({ options: optionsV3 as unknown as StorageValuesOptions }, true);
-			}
-		}
-
-		if (version > 8 && this.currentVersion <= 8) {
-			console.log('Downgrading to v8...');
-
-			await this.doRemove(['itemsCache', 'syncCache', 'traktItemsCache'], true);
-		}
-
-		if (version > 7 && this.currentVersion <= 7) {
-			console.log('Downgrading to v7...');
-		}
-
-		if (version > 6 && this.currentVersion <= 6) {
-			console.log('Downgrading to v6...');
-		}
-
-		if (version > 5 && this.currentVersion <= 5) {
-			console.log('Downgrading to v5...');
-
-			await this.doRemove(['scrobblingDetails'] as unknown as (keyof StorageValues)[], true);
-		}
-
-		if (version > 4 && this.currentVersion <= 4) {
-			console.log('Downgrading to v4...');
-
-			await this.doRemove(
-				[
-					'historyCache',
-					'historyItemsToItemsCache',
-					'imageUrlsCache',
-					'itemsCache',
-					'itemsToTraktItemsCache',
-					'servicesDataCache',
-					'suggestionsCache',
-					'tmdbApiConfigsCache',
-					'traktHistoryItemsCache',
-					'traktItemsCache',
-					'traktSettingsCache',
-					'urlsToTraktItemsCache',
-				] as unknown as (keyof StorageValues)[],
-				true
-			);
-		}
-
-		if (version > 3 && this.currentVersion <= 3) {
-			console.log('Downgrading to v3...');
-
-			await this.doRemove(['corrections'] as unknown as (keyof StorageValues)[], true);
-		}
-
-		if (version > 2 && this.currentVersion <= 2) {
-			console.log('Downgrading to v2...');
-
-			const values = await this.get('options');
-
-			const optionsV2 = values.options as Partial<StorageValuesOptionsV2> | undefined;
-			const optionsV3 = values.options as Partial<StorageValuesOptionsV3> | undefined;
-			if (optionsV2 && optionsV3) {
-				optionsV2.streamingServices = optionsV3.services;
-
-				delete optionsV3.services;
-
-				await this.doSet({ options: optionsV2 as unknown as StorageValuesOptions }, true);
-			}
-		}
-
-		if (version > 1 && this.currentVersion <= 1) {
-			console.log('Downgrading to v1...');
-
-			await this.doRemove(
-				[
-					'traktCache',
-					'syncCache',
-					'correctItems',
-					'scrobblingItem',
-				] as unknown as (keyof StorageValues)[],
-				true
-			);
-
-			const values = await this.get(['options', 'syncOptions']);
-
-			const optionsV1 = values.options as Partial<StorageValuesOptionsV1> | undefined;
-			const optionsV2 = values.options as Partial<StorageValuesOptionsV2> | undefined;
-			if (optionsV1 && optionsV2) {
-				if (optionsV1.streamingServices && optionsV2.streamingServices) {
-					for (const [id, value] of Object.entries(optionsV2.streamingServices)) {
-						if (typeof value === 'boolean') {
-							continue;
-						}
-
-						optionsV1.streamingServices[id] = value.scrobble || value.sync;
-					}
-				}
-
-				delete optionsV2.theme;
-
-				await this.doSet({ options: optionsV1 as unknown as StorageValuesOptions }, true);
-			}
-
-			const syncOptionsV1 = values.syncOptions as Partial<StorageValuesSyncOptionsV1> | undefined;
-			const syncOptionsV2 = values.syncOptions as Partial<StorageValuesSyncOptionsV2> | undefined;
-			if (syncOptionsV1 && syncOptionsV2) {
-				delete syncOptionsV2.addWithReleaseDateMissing;
-				delete syncOptionsV2.minPercentageWatched;
-
-				await this.doSet(
-					{ syncOptions: syncOptionsV1 as unknown as StorageValuesSyncOptions },
-					true
-				);
-			}
-		}
-
-		await this.set({ version: this.currentVersion }, true);
-
-		console.log('Downgraded!');
 	}
 
 	async sync(): Promise<void> {
@@ -605,14 +172,20 @@ class _BrowserStorage {
 
 	private async doSet(values: StorageValues, doSync: boolean): Promise<void> {
 		if (doSync && this.isSyncAvailable) {
-			values = await this.splitChunks(values);
-			await browser.storage.sync.set(values);
+			try {
+				const syncValues = await this.splitChunks(values);
+				await browser.storage.sync.set(syncValues);
+			} catch (err) {
+				console.warn('[UTS] Failed to save to storage.sync, using local storage:', err);
+			}
 		}
 		await browser.storage.local.set(values);
 	}
 
 	get(keys?: keyof StorageValues | (keyof StorageValues)[] | null): Promise<StorageValues> {
-		return browser.storage.local.get(keys);
+		return browser.storage.local.get(
+			(keys ?? undefined) as string | string[] | undefined
+		) as Promise<StorageValues>;
 	}
 
 	async remove(
@@ -626,19 +199,24 @@ class _BrowserStorage {
 		keys: keyof StorageValues | (keyof StorageValues)[],
 		doSync = false
 	): Promise<void> {
+		const keyList = (Array.isArray(keys) ? keys : [keys]) as string[];
 		if (doSync && this.isSyncAvailable) {
-			const syncKeys = [];
-			for (const key of keys) {
-				syncKeys.push(key);
+			try {
+				const syncKeys: string[] = [];
+				for (const key of keyList) {
+					syncKeys.push(key);
 
-				const numChunks = await this.getNumChunks(key);
-				if (numChunks > 0) {
-					syncKeys.push(...this.getChunkKeys(key, numChunks));
+					const numChunks = await this.getNumChunks(key);
+					if (numChunks > 0) {
+						syncKeys.push(...this.getChunkKeys(key, numChunks));
+					}
 				}
+				await browser.storage.sync.remove(syncKeys);
+			} catch (err) {
+				console.warn('[UTS] Failed to remove from storage.sync:', err);
 			}
-			await browser.storage.sync.remove(syncKeys);
 		}
-		await browser.storage.local.remove(keys);
+		await browser.storage.local.remove(keyList);
 	}
 
 	async clear(doSync: boolean): Promise<void> {
@@ -805,12 +383,6 @@ class _BrowserStorage {
 				permissions: ['notifications'],
 				doShow: true,
 			},
-			sendReceiveSuggestions: {
-				type: 'switch',
-				id: 'sendReceiveSuggestions',
-				value: false,
-				doShow: true,
-			},
 			loadImages: {
 				type: 'switch',
 				id: 'loadImages',
@@ -826,13 +398,6 @@ class _BrowserStorage {
 					dark: I18N.translate('darkTheme'),
 					system: I18N.translate('systemTheme'),
 				},
-				doShow: true,
-			},
-			allowRollbar: {
-				type: 'switch',
-				id: 'allowRollbar',
-				value: false,
-				origins: ['*://api.rollbar.com/*'],
 				doShow: true,
 			},
 			grantCookies: {
@@ -872,6 +437,38 @@ class _BrowserStorage {
 		}
 	}
 
+	private async requestPermissionsSafely(req: {
+		permissions?: WebExtManifest.OptionalPermission[];
+		origins?: string[];
+	}): Promise<boolean> {
+		try {
+			if (!req.permissions?.length && !req.origins?.length) {
+				return true;
+			}
+			const hasPermission = await browser.permissions.contains(req);
+			if (hasPermission) {
+				return true;
+			}
+			return await browser.permissions.request(req);
+		} catch (_err) {
+			return true;
+		}
+	}
+
+	private async removePermissionsSafely(req: {
+		permissions?: WebExtManifest.OptionalPermission[];
+		origins?: string[];
+	}): Promise<boolean> {
+		try {
+			if (!req.permissions?.length && !req.origins?.length) {
+				return true;
+			}
+			return await browser.permissions.remove(req);
+		} catch (_err) {
+			return true;
+		}
+	}
+
 	saveOptions(partialOptions: PartialDeep<StorageValuesOptions>) {
 		const options = Utils.mergeObjs(this.options, partialOptions);
 		const permissionPromises: Promise<boolean>[] = [];
@@ -888,14 +485,14 @@ class _BrowserStorage {
 			if (optionDetails.permissions || optionDetails.origins) {
 				if (value) {
 					permissionPromises.push(
-						browser.permissions.request({
+						this.requestPermissionsSafely({
 							permissions: optionDetails.permissions || [],
 							origins: optionDetails.origins || [],
 						})
 					);
 				} else {
 					permissionPromises.push(
-						browser.permissions.remove({
+						this.removePermissionsSafely({
 							permissions: optionDetails.permissions || [],
 							origins: optionDetails.origins || [],
 						})
@@ -932,7 +529,7 @@ class _BrowserStorage {
 						permissionsToAdd = scrobblerEnabled ? ['tabs'] : [];
 					}
 					permissionPromises.push(
-						browser.permissions.request({
+						this.requestPermissionsSafely({
 							permissions: permissionsToAdd,
 							origins: originsToAdd,
 						})
@@ -944,7 +541,7 @@ class _BrowserStorage {
 						permissionsToRemove = scrobblerEnabled ? [] : ['tabs'];
 					}
 					permissionPromises.push(
-						browser.permissions.remove({
+						this.removePermissionsSafely({
 							permissions: permissionsToRemove,
 							origins: originsToRemove,
 						})
@@ -1026,12 +623,14 @@ class _BrowserStorage {
 					? this.syncOptions[option.id]
 					: option.value;
 			if (this.isOption(option, null, 'number')) {
+				let val = option.value as number;
 				if (typeof option.minValue !== 'undefined') {
-					option.value = Math.max(option.value, option.minValue);
+					val = Math.max(val, option.minValue);
 				}
 				if (typeof option.maxValue !== 'undefined') {
-					option.value = Math.min(option.value, option.maxValue);
+					val = Math.min(val, option.maxValue);
 				}
+				option.value = val;
 			}
 			this.syncOptions[option.id] = option.value as never;
 		}

@@ -1,13 +1,8 @@
 {
-	"name": "universal-trakt-scrobbler",
+	"name": "universal-scrob-scrobbler",
 	"version": "0.7.4",
-	"description": "A universal sync for Trakt.tv.",
-	"author": "trakt-tools",
+	"description": "A universal sync for Scrob.",
 	"private": true,
-	"repository": {
-		"type": "git",
-		"url": "git://github.com/trakt-tools/universal-trakt-scrobbler.git"
-	},
 	"scripts": {
 		"build": "cross-env ENV=production webpack --env production",
 		"build-dev": "cross-env ENV=development webpack --env development",
@@ -33,7 +28,6 @@
 		"react-virtualized-auto-sizer": "^2.0.0",
 		"react-window": "^2.0.0",
 		"react-window-infinite-loader": "^2.0.0",
-		"rollbar": "^2.26.5",
 		"type-fest": "^3.13.1",
 		"webextension-polyfill": "^0.10.0"
 	},
@@ -48,7 +42,6 @@
 		"@babel/runtime": "^7.28.6",
 		"@biomejs/biome": "2.3.13",
 		"@octokit/rest": "^19.0.13",
-		"@trakt-tools/cli": "^0.3.3",
 		"@types/archiver": "^5.3.4",
 		"@types/circular-dependency-plugin": "^5.0.8",
 		"@types/dotenv-webpack": "^7.0.8",

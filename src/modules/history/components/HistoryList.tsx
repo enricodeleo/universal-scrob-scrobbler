@@ -1,10 +1,7 @@
-import { CorrectionApi } from '@apis/CorrectionApi';
 import { ServiceApi } from '@apis/ServiceApi';
-import { TmdbApi } from '@apis/TmdbApi';
-import { TraktSync } from '@apis/TraktSync';
+import { ScrobSync } from '@apis/ScrobSync';
 import {
 	HistorySyncSuccessData,
-	ItemCorrectedData,
 	MissingWatchedDateAddedData,
 	StorageOptionsChangeData,
 } from '@common/Events';
@@ -45,10 +42,6 @@ export const HistoryList = (): JSX.Element => {
 	const { serviceId, service, api, store } = useSync();
 
 	const [itemCount, setItemCount] = useState(calculateItemCount(serviceId, store));
-	// Bumped on every ITEMS_LOAD so that `itemSize` gets a new identity. react-window only
-	// recalculates row heights when `rowCount` or the `rowHeight` function changes, so without
-	// this, items that become hidden after they were measured (e.g. once Trakt data arrives and
-	// `doHide()` turns true) would keep their 250px row and leave an empty gap in the list.
 	const [itemsChangeId, setItemsChangeId] = useState(0);
 	const [continueLoading, setContinueLoading] = useState(false);
 
@@ -98,35 +91,33 @@ export const HistoryList = (): JSX.Element => {
 	};
 
 	const checkEnd = async () => {
-		if (store.data.hasReachedEnd) {
-			await Shared.events.dispatch('ITEMS_LOAD', null, {
-				items: {
-					[store.data.items.length]: null,
-				},
-			});
+		let hasReachedEnd = false;
+		if (serviceId) {
+			hasReachedEnd = store.data.hasReachedEnd || store.data.hasReachedLastSyncDate;
+		} else {
+			hasReachedEnd = true;
 		}
+		if (store.data.hasReachedEnd !== hasReachedEnd) {
+			await store.setData({ hasReachedEnd });
+		}
+		setItemCount(calculateItemCount(serviceId, store));
 	};
 
 	const loadMoreItems = async (startIndex: number, stopIndex: number) => {
-		if (!serviceId || !service || !api) {
+		if (!serviceId || !api) {
 			return;
 		}
-		if (startIndex < store.data.items.length) {
-			// Index already loaded
+		const loadItemsCount = stopIndex - startIndex + 1;
+		if (loadItemsCount < ITEMS_PER_LOAD) {
 			return;
 		}
 		if (store.data.isLoading) {
 			store.data.loadQueue.push(startIndex);
 			return;
 		}
-
-		await startLoading([]);
 		let items: ScrobbleItem[] = [];
+		items = await startLoading(items);
 		try {
-			const { hasReachedLastSyncDate } = store.data;
-			if (hasReachedLastSyncDate) {
-				await store.setData({ hasReachedLastSyncDate: false });
-			}
 			items = await api.loadHistory(
 				ITEMS_PER_LOAD,
 				lastSyncValue.lastSync,
@@ -135,7 +126,7 @@ export const HistoryList = (): JSX.Element => {
 			items = await checkHiddenSelected(items);
 			items = await loadData(items);
 		} catch (err) {
-			console.debug('[UTS] Failed to load history items', err);
+			console.debug('[USS] Failed to load history items', err);
 		}
 		await stopLoading(items);
 		await checkEnd();
@@ -147,13 +138,8 @@ export const HistoryList = (): JSX.Element => {
 	};
 
 	const loadData = async (items: ScrobbleItem[]) => {
-		items = await ServiceApi.loadTraktHistory(items, processItem);
-		if (Shared.storage.options.sendReceiveSuggestions) {
-			items = await CorrectionApi.loadSuggestions(items);
-			await store.update(items, true);
-		}
+		items = await ServiceApi.loadScrobHistory(items, processItem);
 		if (Shared.storage.options.loadImages) {
-			items = await TmdbApi.loadImages(items);
 			await store.update(items, true);
 		}
 		return items;
@@ -183,8 +169,8 @@ export const HistoryList = (): JSX.Element => {
 		let newItems = await startLoading(items);
 		newItems = newItems.map((item) => {
 			const newItem = item.clone();
-			if (newItem.trakt) {
-				delete newItem.trakt.watchedAt;
+			if (newItem.scrob) {
+				delete newItem.scrob.watchedAt;
 			}
 			return newItem;
 		});
@@ -233,8 +219,6 @@ export const HistoryList = (): JSX.Element => {
 
 	const itemSize = useCallback(
 		(index: number) => {
-			// In the multi-service view, the first row is a message, so the item indices are
-			// offset by one (see the corresponding offset in `HistoryListItem`)
 			const itemIndex = serviceId ? index : index - 1;
 			return store.data.items[itemIndex]?.isHidden ? 0 : 250;
 		},
@@ -246,9 +230,8 @@ export const HistoryList = (): JSX.Element => {
 	useEffect(() => {
 		const startListeners = () => {
 			Shared.events.subscribe('SERVICE_HISTORY_LOAD_ERROR', null, onHistoryLoadError);
-			Shared.events.subscribe('TRAKT_HISTORY_LOAD_ERROR', null, onTraktHistoryLoadError);
+			Shared.events.subscribe('SCROB_HISTORY_LOAD_ERROR', null, onScrobHistoryLoadError);
 			Shared.events.subscribe('MISSING_WATCHED_DATE_ADDED', null, onMissingWatchedDateAdded);
-			Shared.events.subscribe('ITEM_CORRECTED', null, onItemCorrected);
 			Shared.events.subscribe('HISTORY_SYNC_SUCCESS', null, onHistorySyncSuccess);
 			Shared.events.subscribe('HISTORY_SYNC_ERROR', null, onHistorySyncError);
 			Shared.events.subscribe('STORAGE_OPTIONS_CHANGE', null, onStorageOptionsChange);
@@ -258,9 +241,8 @@ export const HistoryList = (): JSX.Element => {
 
 		const stopListeners = () => {
 			Shared.events.unsubscribe('SERVICE_HISTORY_LOAD_ERROR', null, onHistoryLoadError);
-			Shared.events.unsubscribe('TRAKT_HISTORY_LOAD_ERROR', null, onTraktHistoryLoadError);
+			Shared.events.unsubscribe('SCROB_HISTORY_LOAD_ERROR', null, onScrobHistoryLoadError);
 			Shared.events.unsubscribe('MISSING_WATCHED_DATE_ADDED', null, onMissingWatchedDateAdded);
-			Shared.events.unsubscribe('ITEM_CORRECTED', null, onItemCorrected);
 			Shared.events.unsubscribe('HISTORY_SYNC_SUCCESS', null, onHistorySyncSuccess);
 			Shared.events.unsubscribe('HISTORY_SYNC_ERROR', null, onHistorySyncError);
 			Shared.events.unsubscribe('STORAGE_OPTIONS_CHANGE', null, onStorageOptionsChange);
@@ -281,9 +263,9 @@ export const HistoryList = (): JSX.Element => {
 			});
 		};
 
-		const onTraktHistoryLoadError = async () => {
+		const onScrobHistoryLoadError = async () => {
 			await Shared.events.dispatch('SNACKBAR_SHOW', null, {
-				messageName: 'loadTraktHistoryError',
+				messageName: 'loadScrobHistoryError',
 				severity: 'error',
 			});
 		};
@@ -296,25 +278,8 @@ export const HistoryList = (): JSX.Element => {
 			await stopLoading(newItems);
 		};
 
-		const onItemCorrected = async (data: ItemCorrectedData): Promise<void> => {
-			let newItem = createScrobbleItem(data.newItem);
-			[newItem] = await startLoading([newItem]);
-			try {
-				if (data.oldItem.trakt?.syncId) {
-					const oldItem = createScrobbleItem(data.oldItem);
-					await TraktSync.removeHistory(oldItem);
-				}
-			} catch (_err) {
-				// Do nothing
-			}
-			await store.update([newItem], true);
-			[newItem] = await loadData([newItem]);
-			await stopLoading([newItem]);
-		};
-
 		const onHistorySyncSuccess = async (data: HistorySyncSuccessData) => {
 			await Shared.events.dispatch('SNACKBAR_SHOW', null, {
-				messageArgs: [data.added.episodes.toString(), data.added.movies.toString()],
 				messageName: 'historySyncSuccess',
 				severity: 'success',
 			});

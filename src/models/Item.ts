@@ -1,19 +1,17 @@
-import { Suggestion } from '@apis/CorrectionApi';
 import { Shared } from '@common/Shared';
 import {
-	TraktEpisodeItem,
-	TraktEpisodeItemParams,
-	TraktEpisodeItemValues,
-	TraktItem,
-	TraktMovieItem,
-	TraktMovieItemParams,
-	TraktMovieItemValues,
-	TraktShowItem,
-	TraktShowItemParams,
-	TraktShowItemValues,
-} from '@models/TraktItem';
+	ScrobEpisodeItem,
+	ScrobEpisodeItemParams,
+	ScrobEpisodeItemValues,
+	ScrobItem,
+	ScrobMovieItem,
+	ScrobMovieItemParams,
+	ScrobMovieItemValues,
+	ScrobShowItem,
+	ScrobShowItemParams,
+	ScrobShowItemValues,
+} from '@models/ScrobItem';
 
-// We use this to correct known wrong titles.
 const correctTitles: Record<string, string> = {
 	['Dynasty']: 'Dynasty reboot',
 	['Shameless (U.S.)']: 'Shameless',
@@ -45,7 +43,6 @@ export interface BaseItemValues {
 	isHidden?: boolean;
 	isSelected?: boolean;
 	index?: number;
-	suggestions?: Suggestion[] | null;
 	imageUrl?: string | null;
 	isLoading?: boolean;
 }
@@ -54,37 +51,32 @@ export interface EpisodeItemValues extends BaseItemValues {
 	type: 'episode';
 	season: number;
 	number: number;
-	/**
-	 * Indicates that `number` may be an absolute episode number (numbered sequentially across all
-	 * seasons, e.g. anime episodes from Crunchyroll) rather than a per-season number, so episode
-	 * matching is allowed to fall back to resolving it against the show's season data.
-	 */
 	isAbsolute?: boolean;
 	show: ShowItemValues;
-	trakt?: TraktEpisodeItemValues | null;
+	scrob?: ScrobEpisodeItemValues | null;
 }
 
-export type EpisodeItemParams = Omit<EpisodeItemValues, 'type' | 'show' | 'trakt'> & {
+export type EpisodeItemParams = Omit<EpisodeItemValues, 'type' | 'show' | 'scrob'> & {
 	show: Omit<ShowItemValues, 'type'>;
-	trakt?: TraktEpisodeItemParams | null;
+	scrob?: ScrobEpisodeItemParams | null;
 };
 
 export interface ShowItemValues extends BaseItemValues {
 	type: 'show';
-	trakt?: TraktShowItemValues | null;
+	scrob?: ScrobShowItemValues | null;
 }
 
-export type ShowItemParams = Omit<ShowItemValues, 'type' | 'trakt'> & {
-	trakt?: TraktShowItemParams | null;
+export type ShowItemParams = Omit<ShowItemValues, 'type' | 'scrob'> & {
+	scrob?: ScrobShowItemParams | null;
 };
 
 export interface MovieItemValues extends BaseItemValues {
 	type: 'movie';
-	trakt?: TraktMovieItemValues | null;
+	scrob?: ScrobMovieItemValues | null;
 }
 
-export type MovieItemParams = Omit<MovieItemValues, 'type' | 'trakt'> & {
-	trakt?: TraktMovieItemParams | null;
+export type MovieItemParams = Omit<MovieItemValues, 'type' | 'scrob'> & {
+	scrob?: ScrobMovieItemParams | null;
 };
 
 abstract class BaseItem implements BaseItemValues {
@@ -97,10 +89,9 @@ abstract class BaseItem implements BaseItemValues {
 	isHidden: boolean;
 	isSelected: boolean;
 	index: number;
-	suggestions?: Suggestion[] | null;
 	imageUrl?: string | null;
 	isLoading: boolean;
-	trakt?: TraktItem | null;
+	scrob?: ScrobItem | null;
 
 	constructor(values: BaseItemValues) {
 		this.serviceId = values.serviceId;
@@ -111,7 +102,6 @@ abstract class BaseItem implements BaseItemValues {
 		this.isHidden = values.isHidden ?? false;
 		this.isSelected = values.isSelected ?? false;
 		this.index = values.index ?? 0;
-		this.suggestions = values.suggestions;
 		this.imageUrl = values.imageUrl;
 		this.isLoading = values.isLoading ?? false;
 		this.id = values.id || this.generateId();
@@ -126,45 +116,34 @@ abstract class BaseItem implements BaseItemValues {
 			watchedAt: this.watchedAt,
 			progress: this.progress,
 			index: this.index,
-			suggestions: this.suggestions,
 			imageUrl: this.imageUrl,
 		};
 	}
 
-	/**
-	 * Generates an ID for items that don't have an official ID from the streaming service.
-	 *
-	 * Examples:
-	 *   - Show: `dark-s1-e1-secrets`
-	 *   - Movie: `resident-evil-the-final-chapter`
-	 */
 	abstract generateId(): string;
 
 	abstract getFullTitle(): string;
 
-	/**
-	 * Clones the item for immutability.
-	 */
 	abstract clone(): Item;
 
 	doHide() {
 		return (
-			(Shared.storage.syncOptions.hideSynced && this.trakt && !!this.trakt.watchedAt) ||
+			(Shared.storage.syncOptions.hideSynced && this.scrob && !!this.scrob.watchedAt) ||
 			this.progress < Shared.storage.syncOptions.minPercentageWatched
 		);
 	}
 
 	isSelectable() {
-		return !this.isLoading && !!this.trakt && !this.trakt.watchedAt && !this.doHide();
+		return !this.isLoading && !!this.scrob && !this.scrob.watchedAt && !this.doHide();
 	}
 
 	isMissingWatchedDate() {
 		const { addWithReleaseDate, addWithReleaseDateMissing } = Shared.storage.syncOptions;
 		if (addWithReleaseDate) {
 			if (addWithReleaseDateMissing) {
-				return !this.watchedAt && !this.trakt?.releaseDate;
+				return !this.watchedAt && !this.scrob?.releaseDate;
 			}
-			return !this.trakt?.releaseDate;
+			return !this.scrob?.releaseDate;
 		}
 		return !this.watchedAt;
 	}
@@ -173,16 +152,13 @@ abstract class BaseItem implements BaseItemValues {
 		const { addWithReleaseDate, addWithReleaseDateMissing } = Shared.storage.syncOptions;
 		if (addWithReleaseDate) {
 			if (addWithReleaseDateMissing) {
-				return this.watchedAt ?? this.trakt?.releaseDate;
+				return this.watchedAt ?? this.scrob?.releaseDate;
 			}
-			return this.trakt?.releaseDate;
+			return this.scrob?.releaseDate;
 		}
 		return this.watchedAt;
 	}
 
-	/**
-	 * Returns the ID used to uniquely identify the item in the database.
-	 */
 	getDatabaseId() {
 		return `${this.serviceId}_${this.id}`;
 	}
@@ -194,7 +170,7 @@ export class EpisodeItem extends BaseItem implements EpisodeItemValues {
 	number: number;
 	isAbsolute?: boolean;
 	show: ShowItem;
-	trakt?: TraktEpisodeItem | null;
+	scrob?: ScrobEpisodeItem | null;
 
 	constructor(values: EpisodeItemParams) {
 		super(values);
@@ -202,7 +178,7 @@ export class EpisodeItem extends BaseItem implements EpisodeItemValues {
 		this.number = values.number;
 		this.isAbsolute = values.isAbsolute;
 		this.show = new ShowItem(values.show);
-		this.trakt = values.trakt && new TraktEpisodeItem(values.trakt);
+		this.scrob = values.scrob && new ScrobEpisodeItem(values.scrob);
 	}
 
 	save(): EpisodeItemValues {
@@ -213,7 +189,7 @@ export class EpisodeItem extends BaseItem implements EpisodeItemValues {
 			number: this.number,
 			isAbsolute: this.isAbsolute,
 			show: this.show.save(),
-			trakt: this.trakt?.save(),
+			scrob: this.scrob?.save(),
 		};
 	}
 
@@ -238,18 +214,18 @@ export class EpisodeItem extends BaseItem implements EpisodeItemValues {
 
 export class ShowItem extends BaseItem implements ShowItemValues {
 	type = 'show' as const;
-	trakt?: TraktShowItem | null;
+	scrob?: ScrobShowItem | null;
 
 	constructor(values: ShowItemParams) {
 		super(values);
-		this.trakt = values.trakt && new TraktShowItem(values.trakt);
+		this.scrob = values.scrob && new ScrobShowItem(values.scrob);
 	}
 
 	save(): ShowItemValues {
 		return {
 			...super.save(),
 			type: this.type,
-			trakt: this.trakt?.save(),
+			scrob: this.scrob?.save(),
 		};
 	}
 
@@ -258,7 +234,7 @@ export class ShowItem extends BaseItem implements ShowItemValues {
 	}
 
 	getFullTitle(): string {
-		return `${this.title} (${this.year})`;
+		return `${this.title} (${this.year.toString()})`;
 	}
 
 	clone(): ShowItem {
@@ -268,18 +244,18 @@ export class ShowItem extends BaseItem implements ShowItemValues {
 
 export class MovieItem extends BaseItem implements MovieItemValues {
 	type = 'movie' as const;
-	trakt?: TraktMovieItem | null;
+	scrob?: ScrobMovieItem | null;
 
 	constructor(values: ShowItemParams) {
 		super(values);
-		this.trakt = values.trakt && new TraktMovieItem(values.trakt);
+		this.scrob = values.scrob && new ScrobMovieItem(values.scrob);
 	}
 
 	save(): MovieItemValues {
 		return {
 			...super.save(),
 			type: this.type,
-			trakt: this.trakt?.save(),
+			scrob: this.scrob?.save(),
 		};
 	}
 
@@ -288,7 +264,7 @@ export class MovieItem extends BaseItem implements MovieItemValues {
 	}
 
 	getFullTitle(): string {
-		return `${this.title} (${this.year})`;
+		return `${this.title} (${this.year.toString()})`;
 	}
 
 	clone(): MovieItem {

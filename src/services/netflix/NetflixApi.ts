@@ -232,7 +232,7 @@ class _NetflixApi extends ServiceApi {
 				const responseText = await this.fetchActivatePage();
 				this.session = this.extractSession(responseText);
 			}
-			if (this.session?.profileName != null) {
+			if (this.session?.authUrl != null) {
 				this.isActivated = true;
 			}
 		} catch (err) {
@@ -247,7 +247,7 @@ class _NetflixApi extends ServiceApi {
 		if (!this.isActivated) {
 			await this.activate();
 		}
-		return this.session?.profileName != null;
+		return this.session?.authUrl != null;
 	}
 
 	async loadHistoryItems(cancelKey = 'default'): Promise<NetflixHistoryItem[]> {
@@ -448,7 +448,7 @@ class _NetflixApi extends ServiceApi {
 
 		if (hasFailed) {
 			// Without metadata we lose the year and season/episode numbers, but the
-			// history can still be loaded and matched on Trakt by title, so don't fail
+			// history can still be loaded and matched on Scrob by title, so don't fail
 			Shared.errors.warning(
 				'Failed to get metadata for some Netflix history items.',
 				new Error('Metadata requests failed')
@@ -520,10 +520,25 @@ class _NetflixApi extends ServiceApi {
 
 			// `hiddenEpisodeNumbers` is `true` for collections
 			// In this case, the episode should be searched by title instead of season and number,
-			// because the numbering differs between Netflix and Trakt.tv for collections
-			if (historyItem.season?.summary.hiddenEpisodeNumbers === false) {
+			// because the numbering differs between Netflix and Scrob for collections
+			if (historyItem.season?.summary?.hiddenEpisodeNumbers !== true) {
 				season = historyItem.summary?.season || 0;
 				number = historyItem.summary?.episode || 0;
+			}
+
+			if (season === 0 || number === 0) {
+				const fullText = `${historyItem.seriesTitle || ''} ${historyItem.episodeTitle || ''} ${historyItem.title || ''}`;
+				const seMatch =
+					/S(?<season>\d+)\s*[:.]?\s*E(?<episode>\d+)/i.exec(fullText) ||
+					/Season\s*(?<season>\d+).+?Episode\s*(?<episode>\d+)/i.exec(fullText);
+				if (seMatch?.groups) {
+					if (season === 0 && seMatch.groups.season) {
+						season = parseInt(seMatch.groups.season, 10);
+					}
+					if (number === 0 && seMatch.groups.episode) {
+						number = parseInt(seMatch.groups.episode, 10);
+					}
+				}
 			}
 
 			const episodeTitle = historyItem.episodeTitle.trim();
@@ -574,7 +589,7 @@ class _NetflixApi extends ServiceApi {
 
 	private async getItemFromMetadata(id: string): Promise<ScrobbleItem | null> {
 		const metadata = await this.fetchSingleMetadata(id);
-		return metadata ? this.parseMetadata(metadata) : null;
+		return metadata ? this.parseMetadata(metadata, id) : null;
 	}
 
 	private async getItemFromRecentHistory(id: string): Promise<ScrobbleItem | null> {
@@ -604,42 +619,63 @@ class _NetflixApi extends ServiceApi {
 		return null;
 	}
 
-	parseMetadata(metadata: NetflixSingleMetadataItem): ScrobbleItem {
+	parseMetadata(metadata: NetflixSingleMetadataItem, requestedId?: string): ScrobbleItem {
 		let item: ScrobbleItem;
 		const serviceId = this.id;
 		const { video } = metadata;
 		const { type, title, year } = video;
 		if (type === 'show') {
-			const id = video.currentEpisode.toString();
+			const targetEpisodeId =
+				video.currentEpisode ?? (requestedId ? parseInt(requestedId, 10) : undefined) ?? video.id;
 			let episodeInfo: NetflixMetadataShowEpisode | undefined;
-			const seasonInfo = video.seasons.find((currentSeason) =>
-				currentSeason.episodes.find((currentEpisode) => {
-					const isMatch = currentEpisode.id === video.currentEpisode;
-					if (isMatch) {
-						episodeInfo = currentEpisode;
+			let seasonInfo: NetflixMetadataShowSeason | undefined;
+
+			if (video.seasons) {
+				for (const currentSeason of video.seasons) {
+					if (currentSeason.episodes) {
+						const currentEpisode = currentSeason.episodes.find(
+							(ep) =>
+								ep.id === targetEpisodeId || (requestedId && ep.id === parseInt(requestedId, 10))
+						);
+						if (currentEpisode) {
+							seasonInfo = currentSeason;
+							episodeInfo = currentEpisode;
+							break;
+						}
 					}
-					return isMatch;
-				})
-			);
-			if (!seasonInfo || !episodeInfo) {
-				throw new Error('Could not find item');
+				}
 			}
 
+			const itemId = episodeInfo ? episodeInfo.id.toString() : requestedId || video.id.toString();
 			let season = 0;
 			let number = 0;
 
-			// `hiddenEpisodeNumbers` is `true` for collections
-			// In this case, the episode should be searched by title instead of season and number,
-			// because the numbering differs between Netflix and Trakt.tv for collections
-			if (!video.hiddenEpisodeNumbers) {
-				season = seasonInfo.seq || 0;
-				number = episodeInfo.seq || 0;
+			if (video.hiddenEpisodeNumbers !== true) {
+				season = seasonInfo?.seq || 0;
+				number = episodeInfo?.seq || 0;
 			}
 
-			const episodeTitle = episodeInfo.title;
+			const episodeTitle = episodeInfo?.title || '';
+
+			if (season === 0 || number === 0) {
+				const fullTitle = `${episodeTitle} ${title}`;
+				const match =
+					/(?:S|Season\s*)(?<season>\d+)\s*[:E\s]\s*(?:E|Episode\s*)?(?<episode>\d+)/i.exec(
+						fullTitle
+					);
+				if (match?.groups) {
+					if (season === 0 && match.groups.season) {
+						season = parseInt(match.groups.season, 10);
+					}
+					if (number === 0 && match.groups.episode) {
+						number = parseInt(match.groups.episode, 10);
+					}
+				}
+			}
+
 			item = new EpisodeItem({
 				serviceId,
-				id,
+				id: itemId,
 				title: episodeTitle,
 				year,
 				season,

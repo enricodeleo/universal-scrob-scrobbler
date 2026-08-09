@@ -1,4 +1,3 @@
-import { TraktScrobble } from '@apis/TraktScrobble';
 import {
 	ScrobbleErrorData,
 	ScrobbleSuccessData,
@@ -17,9 +16,9 @@ class _Notifications {
 
 	constructor() {
 		this.messageNames = {
-			[TraktScrobble.START]: 'scrobbleStarted',
-			[TraktScrobble.PAUSE]: 'scrobblePaused',
-			[TraktScrobble.STOP]: 'scrobbleStopped',
+			1: 'scrobbleStarted',
+			2: 'scrobblePaused',
+			3: 'scrobbleStopped',
 		};
 	}
 
@@ -84,7 +83,7 @@ class _Notifications {
 			if (err.status === 0) {
 				const { auth } = await Shared.storage.get('auth');
 
-				if (auth?.access_token) {
+				if (auth?.apiKey) {
 					return I18N.translate('errorNotificationServers');
 				}
 

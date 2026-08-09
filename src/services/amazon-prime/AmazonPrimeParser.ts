@@ -5,8 +5,8 @@ import { EpisodeItem, MovieItem, ScrobbleItem } from '@models/Item';
 class _AmazonPrimeParser extends ScrobbleParser {
 	constructor() {
 		super(AmazonPrimeApi, {
-			videoPlayerSelector: '.dv-player-fullscreen video:not(.tst-video-overlay-player-html5)',
-			watchingUrlRegex: /\/detail\//,
+			videoPlayerSelector: 'video',
+			watchingUrlRegex: /\/(detail|dp|video|watch)\//,
 		});
 	}
 
@@ -18,13 +18,18 @@ class _AmazonPrimeParser extends ScrobbleParser {
 	protected override parseItemFromDom(): ScrobbleItem | null {
 		const serviceId = AmazonPrimeApi.id;
 
-		// find active player container, new ones (dv-web-player-2, etc.) are created when switching video without refresh
-		const playerContainer = this.videoPlayer?.closest('[id^="dv-web-player"]');
+		const playerContainer = this.videoPlayer?.closest('[id^="dv-web-player"]') || document;
+		const titleElement =
+			playerContainer.querySelector('.atvwebplayersdk-title-text') ||
+			playerContainer.querySelector('[data-automation-id="title"]') ||
+			playerContainer.querySelector('.atvwebplayersdk-title') ||
+			document.querySelector('.atvwebplayersdk-title-text');
 
-		// get title from player UI
-		const searchContext = playerContainer || document;
-		const titleElement = searchContext.querySelector('.atvwebplayersdk-title-text');
-		const subtitleElement = searchContext.querySelector('.atvwebplayersdk-subtitle-text');
+		const subtitleElement =
+			playerContainer.querySelector('.atvwebplayersdk-subtitle-text') ||
+			playerContainer.querySelector('[data-automation-id="subtitle"]') ||
+			playerContainer.querySelector('.atvwebplayersdk-subtitle') ||
+			document.querySelector('.atvwebplayersdk-subtitle-text');
 
 		if (!titleElement) {
 			return null;
@@ -37,20 +42,19 @@ class _AmazonPrimeParser extends ScrobbleParser {
 			return null;
 		}
 
-		// check if it's a TV show (has season/episode info in subtitle)
-		// ex format: "Season 1, Ep. 4 The Ghouls"
-		const episodeMatch = subtitle.match(
-			/Season\s+(?<season>\d+),?\s*Ep\.?\s*(?<episode>\d+)\s*(?<episodeTitle>.*)/i
-		);
-		if (episodeMatch?.groups) {
-			const season = parseInt(episodeMatch.groups.season, 10);
-			const episodeNumber = parseInt(episodeMatch.groups.episode, 10);
-			const episodeTitle = episodeMatch.groups.episodeTitle?.trim() || '';
+		const episodeMatch =
+			subtitle.match(
+				/(?:Season|S)\s*(?<season>\d+)[,:]?\s*(?:Ep\.?|Episode|E)\s*(?<episode>\d+)\s*[-:]?\s*(?<episodeTitle>.*)/i
+			) || subtitle.match(/(?:Ep\.?|Episode|E)\s*(?<episode>\d+)\s*[-:]?\s*(?<episodeTitle>.*)/i);
 
-			// since an "id from service" is required and we don't get/use id for this, we generate one instead
+		if (episodeMatch?.groups) {
+			const season = episodeMatch.groups.season ? parseInt(episodeMatch.groups.season, 10) : 1;
+			const episodeNumber = parseInt(episodeMatch.groups.episode, 10);
+			const episodeTitle = episodeMatch.groups.episodeTitle?.trim() || `Episode ${episodeNumber}`;
+
 			const showSlug = title.toLowerCase().replace(/[^a-z0-9]/gi, '');
 			const episodeSlug = episodeTitle.toLowerCase().replace(/[^a-z0-9]/gi, '');
-			const id = `${showSlug}-s${season}-e${episodeNumber}-${episodeSlug}`; // ex: fallout-s1-e4-theghouls
+			const id = `${showSlug}-s${season}-e${episodeNumber}-${episodeSlug}`;
 
 			return new EpisodeItem({
 				serviceId,
@@ -65,11 +69,10 @@ class _AmazonPrimeParser extends ScrobbleParser {
 			});
 		}
 
-		// otherwise movie
 		const movieSlug = title.toLowerCase().replace(/[^a-z0-9]/gi, '');
 		return new MovieItem({
 			serviceId,
-			id: movieSlug, // ex: oppenheimer
+			id: movieSlug,
 			title,
 		});
 	}

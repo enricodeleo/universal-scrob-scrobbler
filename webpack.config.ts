@@ -104,7 +104,6 @@ const getWebpackConfig = (env: Environment): webpack.Configuration => {
 		devtool: env.production ? false : 'source-map',
 		entry: {
 			background: ['./src/modules/background/background.ts'],
-			trakt: ['./src/modules/content/trakt/trakt.ts'],
 			popup: ['./src/modules/popup/popup.tsx'],
 			history: ['./src/modules/history/history.tsx'],
 			options: ['./src/modules/options/options.tsx'],
@@ -174,7 +173,7 @@ const getWebpackConfig = (env: Environment): webpack.Configuration => {
 				new plugins.html({
 					template: './src/templates/main.pug',
 					templateParameters: {
-						title: `${titlePrefix}Universal Trakt Scrobbler - Popup`,
+						title: `${titlePrefix}Universal Scrob Scrobbler - Popup`,
 						script: 'popup.js',
 					},
 					filename: 'popup.html',
@@ -183,7 +182,7 @@ const getWebpackConfig = (env: Environment): webpack.Configuration => {
 				new plugins.html({
 					template: './src/templates/main.pug',
 					templateParameters: {
-						title: `${titlePrefix}Universal Trakt Scrobbler - History`,
+						title: `${titlePrefix}Universal Scrob Scrobbler - History`,
 						script: 'history.js',
 					},
 					filename: 'history.html',
@@ -192,7 +191,7 @@ const getWebpackConfig = (env: Environment): webpack.Configuration => {
 				new plugins.html({
 					template: './src/templates/main.pug',
 					templateParameters: {
-						title: `${titlePrefix}Universal Trakt Scrobbler - Options`,
+						title: `${titlePrefix}Universal Scrob Scrobbler - Options`,
 						script: 'options.js',
 					},
 					filename: 'options.html',
@@ -201,7 +200,7 @@ const getWebpackConfig = (env: Environment): webpack.Configuration => {
 				new plugins.html({
 					template: './src/templates/main.pug',
 					templateParameters: {
-						title: `${titlePrefix}Universal Trakt Scrobbler - Kino.pub Auth`,
+						title: `${titlePrefix}Universal Scrob Scrobbler - Kino.pub Auth`,
 						script: 'kino-pub-auth.js',
 					},
 					filename: 'kino-pub-auth.html',
@@ -236,20 +235,13 @@ const getManifest = (browserName: string, isDev: boolean): string => {
 		key?: string;
 		optional_host_permissions?: string[];
 	} = {
-		name: isDev ? '[dev] Universal Trakt Scrobbler' : 'Universal Trakt Scrobbler',
+		name: isDev ? '[dev] Universal Scrob Scrobbler' : 'Universal Scrob Scrobbler',
 		version: packageJson.version,
 		description: '__MSG_appDescription__',
 		icons: {
 			16: 'images/uts-icon-16.png',
 			128: 'images/uts-icon-128.png',
 		},
-		content_scripts: [
-			{
-				js: ['trakt.js'],
-				// Trakt redirects oauth callback from trakt.tv/apps to app.trakt.tv
-				matches: ['*://*.trakt.tv/apps*', '*://app.trakt.tv/*'],
-			},
-		],
 		default_locale: 'en',
 	};
 	switch (browserName) {
@@ -266,18 +258,14 @@ const getManifest = (browserName: string, isDev: boolean): string => {
 					.flat(),
 			];
 			manifest.permissions = ['alarms', 'identity', 'scripting', 'storage', 'unlimitedStorage'];
-			manifest.host_permissions = [
-				'*://*.trakt.tv/*',
-				'*://*.themoviedb.org/*',
-				'*://*.uts.rafaelgomes.xyz/*',
-			];
+			manifest.host_permissions = ['<all_urls>'];
 			manifest.action = {
 				default_icon: {
 					19: 'images/uts-icon-19.png',
 					38: 'images/uts-icon-38.png',
 				},
 				default_popup: 'popup.html',
-				default_title: isDev ? '[dev] Universal Trakt Scrobbler' : 'Universal Trakt Scrobbler',
+				default_title: isDev ? '[dev] Universal Scrob Scrobbler' : 'Universal Scrob Scrobbler',
 			};
 			if (process.env.CHROME_EXTENSION_KEY) {
 				manifest.key = process.env.CHROME_EXTENSION_KEY;
@@ -301,33 +289,20 @@ const getManifest = (browserName: string, isDev: boolean): string => {
 					.map((service) => service.hostPatterns)
 					.flat(),
 			];
-			manifest.permissions = [
-				'alarms',
-				'identity',
-				'storage',
-				'unlimitedStorage',
-				'*://*.trakt.tv/*',
-				'*://*.themoviedb.org/*',
-				'*://*.uts.rafaelgomes.xyz/*',
-			];
+			manifest.permissions = ['alarms', 'identity', 'storage', 'unlimitedStorage', '<all_urls>'];
 			manifest.browser_action = {
 				default_icon: {
 					19: 'images/uts-icon-19.png',
 					38: 'images/uts-icon-38.png',
 				},
 				default_popup: 'popup.html',
-				default_title: isDev ? '[dev] Universal Trakt Scrobbler' : 'Universal Trakt Scrobbler',
+				default_title: isDev ? '[dev] Universal Scrob Scrobbler' : 'Universal Scrob Scrobbler',
 			};
-			// Uncomment this to connect to react-devtools
-			// manifest.content_security_policy =
-			// 	"script-src 'self' http://localhost:8097; object-src 'self'";
-			if (process.env.FIREFOX_EXTENSION_ID) {
-				manifest.browser_specific_settings = {
-					gecko: {
-						id: process.env.FIREFOX_EXTENSION_ID,
-					},
-				};
-			}
+			manifest.browser_specific_settings = {
+				gecko: {
+					id: process.env.FIREFOX_EXTENSION_ID || 'universal-scrob-scrobbler@extension',
+				},
+			};
 			break;
 		}
 	}
@@ -335,32 +310,42 @@ const getManifest = (browserName: string, isDev: boolean): string => {
 };
 
 const runFinalSteps = async (env: Environment) => {
-	fs.copySync('./src/_locales', './build/output/_locales');
-
-	const browsers = ['chrome', 'firefox'];
-	for (const browser of browsers) {
-		fs.copySync('./build/output', `./build/${browser}`);
-		fs.writeFileSync(`./build/${browser}/manifest.json`, getManifest(browser, !env.production));
-
-		if (env.production) {
-			const distPath = path.resolve(BASE_PATH, 'dist');
-			if (!fs.existsSync(distPath)) {
-				fs.mkdirSync(distPath);
-			}
-
-			const archive = archiver('zip', { zlib: { level: 9 } });
-			await new Promise((resolve, reject) => {
-				archive
-					.pipe(fs.createWriteStream(path.resolve(distPath, `${browser}.zip`)))
-					.on('finish', () => resolve(null))
-					.on('error', (err) => reject(err));
-				archive.directory(path.resolve(BASE_PATH, `./build/${browser}`), false);
-				void archive.finalize();
-			});
-		}
+	const localesDir = path.resolve(BASE_PATH, 'src', '_locales');
+	const outputLocalesDir = path.resolve(BASE_PATH, 'build', 'output', '_locales');
+	if (await fs.pathExists(localesDir)) {
+		await fs.copy(localesDir, outputLocalesDir);
 	}
 
-	fs.rmSync('./build/output', { recursive: true });
+	const browsers = ['chrome', 'firefox'];
+	for (const browserName of browsers) {
+		const browserDir = path.resolve(BASE_PATH, 'build', browserName);
+		await fs.copy(path.resolve(BASE_PATH, 'build', 'output'), browserDir);
+		await fs.writeFile(
+			path.resolve(browserDir, 'manifest.json'),
+			getManifest(browserName, env.development)
+		);
+		if (env.production) {
+			const zipPath = path.resolve(BASE_PATH, 'build', `${browserName}.zip`);
+			try {
+				await fs.remove(zipPath);
+				const archive = archiver('zip');
+				const zipStream = fs.createWriteStream(zipPath);
+				const zipPromise = new Promise<void>((resolve, reject) => {
+					zipStream.on('close', resolve);
+					zipStream.on('error', reject);
+					archive.on('error', reject);
+				});
+				archive.pipe(zipStream);
+				archive.directory(browserDir, false);
+				await archive.finalize();
+				await zipPromise;
+			} catch (err) {
+				console.warn(`[Build] Could not update ${browserName}.zip (file may be open/locked):`, err);
+			}
+		}
+	}
 };
 
-export default getWebpackConfig;
+export default (env: Environment): webpack.Configuration => {
+	return getWebpackConfig(env);
+};

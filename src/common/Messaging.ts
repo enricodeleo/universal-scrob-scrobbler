@@ -1,4 +1,4 @@
-import { TraktAuthDetails } from '@apis/TraktAuth';
+import { ScrobAuthDetails } from '@apis/ScrobAuth';
 import { Event, EventData } from '@common/Events';
 import { RequestDetails } from '@common/Requests';
 import { RequestError, RequestErrorOptions } from '@common/RequestError';
@@ -13,8 +13,7 @@ export interface MessageRequests {
 	'connect-content-script': ConnectContentScriptMessage;
 	'open-tab': OpenTabMessage;
 	'get-tab-id': GetTabIdMessage;
-	'validate-trakt-token': ValidateTraktTokenMessage;
-	'finish-login': FinishLoginMessage;
+	'validate-scrob-connection': ValidateScrobConnectionMessage;
 	login: LoginMessage;
 	logout: LogoutMessage;
 	'set-title': SetTitleMessage;
@@ -36,9 +35,8 @@ export interface ReturnTypes {
 	'connect-content-script': void;
 	'open-tab': WebExtTabs.Tab | null;
 	'get-tab-id': number | null;
-	'validate-trakt-token': TraktAuthDetails | null;
-	'finish-login': void;
-	login: TraktAuthDetails;
+	'validate-scrob-connection': ScrobAuthDetails | null;
+	login: ScrobAuthDetails;
 	logout: void;
 	'set-title': void;
 	'set-active-icon': void;
@@ -67,17 +65,14 @@ export interface GetTabIdMessage {
 	action: 'get-tab-id';
 }
 
-export interface ValidateTraktTokenMessage {
-	action: 'validate-trakt-token';
-}
-
-export interface FinishLoginMessage {
-	action: 'finish-login';
-	redirectUrl: string;
+export interface ValidateScrobConnectionMessage {
+	action: 'validate-scrob-connection';
 }
 
 export interface LoginMessage {
 	action: 'login';
+	instanceUrl: string;
+	apiKey: string;
 }
 
 export interface LogoutMessage {
@@ -161,9 +156,6 @@ export type MessagingError =
 	  };
 
 class _Messaging {
-	/**
-	 * Returning undefined from a message handler means that the response will not be sent back. This is useful for situations where a message is received in multiple places (background, popup, ...) but only one of them is responsible for responding, while the others simply receive the message and do something with it.
-	 */
 	private messageHandlers: MessageHandlers = {
 		'dispatch-event': (message) =>
 			Shared.events.dispatch(message.eventType, message.eventSpecifier, message.data, true),
@@ -250,9 +242,6 @@ class _Messaging {
 		};
 	}
 
-	/**
-	 * Sends a message to all extension pages (so it will be sent to the background page, the popup page, the history page and the options page, if all of them are open).
-	 */
 	async toExtension<T extends MessageRequest>(message: T): Promise<ReturnType<T>> {
 		let response = null as ReturnType<T>;
 		try {
@@ -277,17 +266,18 @@ class _Messaging {
 		return response;
 	}
 
-	/**
-	 * Sends a message to a specific content page (for example, the page that is currently scrobbling).
-	 */
-	async toContent<T extends MessageRequest>(message: T, tabId: number): Promise<ReturnType<T>> {
-		const response = ((await browser.tabs.sendMessage(tabId, message)) ?? null) as ReturnType<T>;
-		return response;
+	async toContent<T extends MessageRequest>(
+		message: T,
+		tabId: number
+	): Promise<ReturnType<T> | null> {
+		try {
+			const response = ((await browser.tabs.sendMessage(tabId, message)) ?? null) as ReturnType<T>;
+			return response;
+		} catch (_err) {
+			return null;
+		}
 	}
 
-	/**
-	 * Sends a message to all content pages.
-	 */
 	async toAllContent<T extends Exclude<MessageRequest, SendToAllContentMessage>>(
 		message: T
 	): Promise<void> {

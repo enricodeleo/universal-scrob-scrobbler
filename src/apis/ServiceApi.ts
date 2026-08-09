@@ -1,6 +1,5 @@
-import { Suggestion } from '@apis/CorrectionApi';
-import { TraktSearch } from '@apis/TraktSearch';
-import { TraktSync } from '@apis/TraktSync';
+import { ScrobSearch } from '@apis/ScrobSearch';
+import { ScrobSync } from '@apis/ScrobSync';
 import { Cache, CacheItems } from '@common/Cache';
 import { RequestError } from '@common/RequestError';
 import { Shared } from '@common/Shared';
@@ -40,39 +39,42 @@ export abstract class ServiceApi {
 		registerServiceApi(this.id, this);
 	}
 
-	static async loadTraktHistory(
+	reset(): void {
+		this.leftoverHistoryItems = [];
+		this.hasCheckedHistoryCache = false;
+		this.hasReachedHistoryEnd = false;
+		this.nextHistoryPage = 0;
+		this.nextHistoryUrl = '';
+	}
+
+	static async loadScrobHistory(
 		items: ScrobbleItem[],
 		processItem?: (item: ScrobbleItem) => Promise<ScrobbleItem>,
 		cancelKey = 'default'
 	): Promise<ScrobbleItem[]> {
-		const hasLoadedTraktHistory = !items.some(
+		const hasLoadedScrobHistory = !items.some(
 			(item) =>
-				typeof item.trakt === 'undefined' ||
-				(item.trakt && typeof item.trakt.watchedAt === 'undefined')
+				typeof item.scrob === 'undefined' ||
+				(item.scrob && typeof item.scrob.watchedAt === 'undefined')
 		);
-		if (hasLoadedTraktHistory) {
+		if (hasLoadedScrobHistory) {
 			return items;
 		}
 		let newItems = items.map((item) => item.clone());
 		try {
 			const caches = await Cache.get([
-				'itemsToTraktItems',
-				'traktItems',
-				'traktHistoryItems',
-				'urlsToTraktItems',
+				'itemsToScrobItems',
+				'scrobItems',
+				'scrobHistoryItems',
+				'urlsToScrobItems',
 			]);
-			const { corrections } = await Shared.storage.get('corrections');
 			const promises = [];
 			for (const item of newItems) {
 				if (
-					typeof item.trakt === 'undefined' ||
-					(item.trakt && typeof item.trakt.watchedAt === 'undefined')
+					typeof item.scrob === 'undefined' ||
+					(item.scrob && typeof item.scrob.watchedAt === 'undefined')
 				) {
-					const databaseId = item.getDatabaseId();
-					const correction = corrections?.[databaseId];
-					promises.push(
-						ServiceApi.loadTraktItemHistory(item, caches, correction, processItem, cancelKey)
-					);
+					promises.push(ServiceApi.loadScrobItemHistory(item, caches, processItem, cancelKey));
 				} else {
 					let promise;
 					if (processItem) {
@@ -87,8 +89,8 @@ export abstract class ServiceApi {
 			await Cache.set(caches);
 		} catch (err) {
 			if (Shared.errors.validate(err)) {
-				Shared.errors.error('Failed to load Trakt history.', err);
-				await Shared.events.dispatch('TRAKT_HISTORY_LOAD_ERROR', null, {
+				Shared.errors.error('Failed to load Scrob history.', err);
+				await Shared.events.dispatch('SCROB_HISTORY_LOAD_ERROR', null, {
 					error: err,
 				});
 			}
@@ -97,37 +99,36 @@ export abstract class ServiceApi {
 		return newItems;
 	}
 
-	static async loadTraktItemHistory(
+	static async loadScrobItemHistory(
 		item: ScrobbleItem,
 		caches: CacheItems<
-			['itemsToTraktItems', 'traktItems', 'traktHistoryItems', 'urlsToTraktItems']
+			['itemsToScrobItems', 'scrobItems', 'scrobHistoryItems', 'urlsToScrobItems']
 		>,
-		correction?: Suggestion,
 		processItem?: (item: ScrobbleItem) => Promise<ScrobbleItem>,
 		cancelKey = 'default'
 	): Promise<ScrobbleItem> {
 		try {
-			if (!item.trakt) {
-				item.trakt = await TraktSearch.find(item, caches, correction, cancelKey);
+			if (!item.scrob) {
+				item.scrob = await ScrobSearch.find(item, caches, cancelKey);
 				if (processItem) {
 					item = await processItem(item.clone());
 				}
 			}
-			if (item.trakt && typeof item.trakt.watchedAt === 'undefined') {
-				await TraktSync.loadHistory(item, caches.traktHistoryItems, false, cancelKey);
+			if (item.scrob && typeof item.scrob.watchedAt === 'undefined') {
+				await ScrobSync.loadHistory(item, caches.scrobHistoryItems, false, cancelKey);
 				if (processItem) {
 					item = await processItem(item.clone());
 				}
 			}
 		} catch (err) {
 			console.debug(
-				`[UTS] Failed to load Trakt data for "${item.getFullTitle()}" (${item.serviceId})`,
+				`[USS] Failed to load Scrob data for "${item.getFullTitle()}" (${item.serviceId})`,
 				err
 			);
-			if (item.trakt) {
-				delete item.trakt.watchedAt;
+			if (item.scrob) {
+				delete item.scrob.watchedAt;
 			} else {
-				item.trakt = null;
+				item.scrob = null;
 			}
 			if (processItem) {
 				item = await processItem(item.clone());
@@ -166,11 +167,11 @@ export abstract class ServiceApi {
 				if (this.leftoverHistoryItems.length > 0) {
 					responseItems = this.leftoverHistoryItems;
 					this.leftoverHistoryItems = [];
-				} else if (!this.hasReachedHistoryEnd) {
+				} else if (!this.hasReachedHistoryEnd && this.loadHistoryItems) {
 					responseItems = await this.loadHistoryItems(cancelKey);
 					if (!this.hasCheckedHistoryCache) {
 						let firstItem: ScrobbleItemValues | null = null;
-						if (historyCache.items.length > 0) {
+						if (historyCache.items.length > 0 && this.getHistoryItemId) {
 							const historyItemId = `${this.id}_${this.getHistoryItemId(historyCache.items[0])}`;
 							const itemId = caches.historyItemsToItems.get(historyItemId);
 							if (itemId) {
@@ -180,6 +181,7 @@ export abstract class ServiceApi {
 						if (
 							responseItems.length > 0 &&
 							firstItem &&
+							this.isNewHistoryItem &&
 							this.isNewHistoryItem(responseItems[0], firstItem.watchedAt ?? 0, firstItem.id ?? '')
 						) {
 							historyCache = {
@@ -198,76 +200,70 @@ export abstract class ServiceApi {
 					historyCache.nextUrl = this.nextHistoryUrl;
 					historyCache.items.push(...responseItems);
 				}
-				for (const [index, responseItem] of responseItems.entries()) {
-					if (itemsToLoad === 0) {
-						this.leftoverHistoryItems = responseItems.slice(index);
-						break;
-					} else if (
-						lastSync === 0 ||
-						!lastSyncId ||
-						this.isNewHistoryItem(responseItem, lastSync, lastSyncId)
-					) {
-						historyItems.push(responseItem);
-						itemsToLoad -= 1;
-					} else if (lastSync > 0 && lastSyncId) {
-						this.leftoverHistoryItems = responseItems.slice(index);
-						hasReachedLastSyncDate = true;
-						break;
-					}
-				}
-				hasReachedEnd =
-					(this.leftoverHistoryItems.length === 0 && this.hasReachedHistoryEnd) ||
-					hasReachedLastSyncDate;
-			} while (!hasReachedEnd && itemsToLoad > 0);
-			if (historyItems.length > 0) {
-				const tmpItems: (ScrobbleItem | null)[] = [];
-				const historyItemsToConvert = [];
 
-				for (const historyItem of historyItems) {
-					const historyItemId = `${this.id}_${this.getHistoryItemId(historyItem)}`;
+				if (responseItems.length === 0) {
+					hasReachedEnd = true;
+				}
+
+				for (let i = 0; i < responseItems.length; i++) {
+					const historyItem = responseItems[i];
+					const historyItemId = this.getHistoryItemId
+						? `${this.id}_${this.getHistoryItemId(historyItem)}`
+						: `${this.id}_${i.toString()}`;
+					let scrobbleItem: ScrobbleItem | null = null;
 					const itemId = caches.historyItemsToItems.get(historyItemId);
 					if (itemId) {
-						const item = caches.items.get(itemId);
-						if (item) {
-							this.updateItemFromHistory(item, historyItem);
-							tmpItems.push(createScrobbleItem(item));
-						} else {
-							tmpItems.push(null);
-							historyItemsToConvert.push(historyItem);
+						const cachedValues = caches.items.get(itemId);
+						if (cachedValues) {
+							scrobbleItem = createScrobbleItem(cachedValues);
 						}
-					} else {
-						tmpItems.push(null);
-						historyItemsToConvert.push(historyItem);
+					}
+					if (!scrobbleItem && this.parseHistoryItem) {
+						scrobbleItem = await this.parseHistoryItem(historyItem);
+						if (scrobbleItem) {
+							caches.historyItemsToItems.set(historyItemId, scrobbleItem.getDatabaseId());
+							caches.items.set(scrobbleItem.getDatabaseId(), scrobbleItem.save());
+						}
+					}
+					if (scrobbleItem) {
+						historyItems.push(historyItem);
+						items.push(scrobbleItem);
+						if (
+							lastSync > 0 &&
+							lastSyncId &&
+							this.isNewHistoryItem &&
+							!this.isNewHistoryItem(historyItem, lastSync, lastSyncId)
+						) {
+							hasReachedLastSyncDate = true;
+							this.leftoverHistoryItems = responseItems.slice(i + 1);
+							break;
+						}
 					}
 				}
+			} while (
+				items.length < itemsToLoad &&
+				!hasReachedEnd &&
+				!hasReachedLastSyncDate &&
+				!this.hasReachedHistoryEnd
+			);
 
-				if (historyItemsToConvert.length > 0) {
-					const convertedItems = await this.convertHistoryItems(historyItemsToConvert);
-					let index = 0;
-					items = tmpItems.map((item) => {
-						if (item !== null) {
-							return item;
-						}
-
-						item = convertedItems[index];
-						index += 1;
-						return item;
-					});
-				} else {
-					items = tmpItems as ScrobbleItem[];
-				}
-
-				for (const [index, historyItem] of historyItems.entries()) {
-					const historyItemId = `${this.id}_${this.getHistoryItemId(historyItem)}`;
-					const item = items[index];
-					const itemDatabaseId = item.getDatabaseId();
-					caches.historyItemsToItems.set(historyItemId, itemDatabaseId);
-					caches.items.set(itemDatabaseId, item.save());
-				}
+			if (this.hasReachedHistoryEnd && this.leftoverHistoryItems.length === 0) {
+				hasReachedEnd = true;
 			}
-			await store.setData({ items, hasReachedEnd, hasReachedLastSyncDate });
+
+			historyCache.items = historyCache.items.filter(
+				(historyItem) => !historyItems.includes(historyItem)
+			);
 			caches.history.set(this.id, historyCache);
 			await Cache.set(caches);
+
+			items = await ServiceApi.loadScrobHistory(items, undefined, cancelKey);
+
+			await store.setData({
+				items,
+				hasReachedEnd,
+				hasReachedLastSyncDate,
+			});
 		} catch (err) {
 			if (Shared.errors.validate(err)) {
 				Shared.errors.error('Failed to load history.', err);
@@ -280,71 +276,13 @@ export abstract class ServiceApi {
 		return items;
 	}
 
-	reset(): void {
-		this.leftoverHistoryItems = [];
-		this.hasCheckedHistoryCache = false;
-		this.hasReachedHistoryEnd = false;
-		this.nextHistoryPage = 0;
-		this.nextHistoryUrl = '';
-	}
+	getItem?(id: string): Promisable<ScrobbleItem | null>;
 
-	/**
-	 * This method is responsible for loading more history items. It should set `hasReachedHistoryEnd` to true when there are no more history items to load.
-	 *
-	 * Should be overridden in the child class.
-	 */
-	loadHistoryItems(_cancelKey = 'default'): Promise<unknown[]> {
-		Shared.errors.error('loadHistoryItems() is not implemented in this service!', new Error());
-		return Promise.resolve([]);
-	}
+	loadHistoryItems?(cancelKey?: string): Promise<unknown[]>;
 
-	/**
-	 * This method is responsible for checking if a history item is new, based on `lastSync` and `lastSyncId`.
-	 *
-	 * Should be overridden in the child class.
-	 */
-	isNewHistoryItem(_historyItem: unknown, _lastSync: number, _lastSyncId: string): boolean {
-		Shared.errors.error('isNewHistoryItem() is not implemented in this service!', new Error());
-		return true;
-	}
+	isNewHistoryItem?(historyItem: unknown, lastSync: number, lastSyncId: string): boolean;
 
-	/**
-	 * This method is responsible for returning a unique ID for a history item.
-	 *
-	 * Should be overridden in the child class.
-	 */
-	getHistoryItemId(_historyItem: unknown): string {
-		Shared.errors.error('getHistoryItemId() is not implemented in this service!', new Error());
-		return '';
-	}
+	getHistoryItemId?(historyItem: unknown): string;
 
-	/**
-	 * This method is responsible for transforming history items into items.
-	 *
-	 * Should be overridden in the child class.
-	 */
-	convertHistoryItems(_historyItems: unknown[]): Promisable<ScrobbleItem[]> {
-		Shared.errors.error('convertHistoryItems() is not implemented in this service!', new Error());
-		return Promise.resolve([]);
-	}
-
-	/**
-	 * This method is responsible for updating the `watchedAt` and `progress` data for an item from the history,
-	 * when it's retrieved from the cache,
-	 * so that it has up-to-date data.
-	 *
-	 * Should be overridden in the child class.
-	 */
-	updateItemFromHistory(_item: ScrobbleItemValues, _historyItem: unknown): void {
-		Shared.errors.error('updateItemFromHistory() is not implemented in this service!', new Error());
-		// Do nothing
-	}
-
-	/**
-	 * If an item can be retrieved from the API based on the ID, this method should be overridden in the child class.
-	 */
-	getItem(_id: string): Promise<ScrobbleItem | null> {
-		Shared.errors.error('getItem() is not implemented in this service!', new Error());
-		return Promise.resolve(null);
-	}
+	parseHistoryItem?(historyItem: unknown): Promisable<ScrobbleItem | null>;
 }

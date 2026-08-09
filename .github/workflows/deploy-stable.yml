@@ -11,9 +11,6 @@ jobs:
     if: ${{ contains(github.event.head_commit.message, '[bump-version]') }}
     runs-on: ubuntu-22.04
     env:
-      TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
-      TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
-      ROLLBAR_TOKEN: ${{ secrets.ROLLBAR_TOKEN }}
       TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
       CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
       CHROME_EXTENSION_KEY: ${{ secrets.CHROME_EXTENSION_KEY }}

@@ -12,7 +12,7 @@ class _NetflixParser extends ScrobbleParser {
 	 * retrying so the item can resolve once it becomes available. The retry is throttled to
 	 * avoid hammering the API on every parse tick (which runs roughly every 500ms).
 	 */
-	private static readonly FAILING_ID_RETRY_INTERVAL = 30 * 1e3;
+	private static readonly FAILING_ID_RETRY_INTERVAL = 2 * 1e3;
 
 	/**
 	 * How long (in ms) a single playback injection is reused for. Both the playback and the
@@ -65,7 +65,7 @@ class _NetflixParser extends ScrobbleParser {
 			return null;
 		}
 
-		const item = await this.api.getItem(id);
+		const item = this.api.getItem ? await this.api.getItem(id) : null;
 		if (item) {
 			this.failingIds.delete(id);
 		} else {

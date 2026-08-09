@@ -13,7 +13,7 @@ export const AboutPage = (): JSX.Element => {
 			<Typography variant="h6">{I18N.translate('aboutMessage')}</Typography>
 			<Button
 				color="secondary"
-				onClick={() => void onLinkClick('https://github.com/trakt-tools/universal-trakt-scrobbler')}
+				onClick={() => void onLinkClick('https://github.com/ellite/scrob')}
 				variant="contained"
 			>
 				{I18N.translate('readMore')}

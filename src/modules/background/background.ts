@@ -1,4 +1,4 @@
-import { TraktAuth } from '@apis/TraktAuth';
+import { ScrobAuth } from '@apis/ScrobAuth';
 import { AutoSync } from '@common/AutoSync';
 import { BrowserAction } from '@common/BrowserAction';
 import { BrowserStorage } from '@common/BrowserStorage';
@@ -46,13 +46,11 @@ Messaging.addHandlers({
 
 	'get-tab-id': (message, tabId) => tabId,
 
-	'validate-trakt-token': () => TraktAuth.validateToken(),
+	'validate-scrob-connection': () => ScrobAuth.validateConnection(),
 
-	'finish-login': (message) => TraktAuth.finishManualAuth(message.redirectUrl),
+	login: (message) => ScrobAuth.connect(message.instanceUrl, message.apiKey),
 
-	login: () => TraktAuth.authorize(),
-
-	logout: () => TraktAuth.revokeToken(),
+	logout: () => ScrobAuth.disconnect(),
 
 	'send-request': (message, tabId) => Requests.send(message.request, tabId),
 

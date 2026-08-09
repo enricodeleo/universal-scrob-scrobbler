@@ -1,25 +1,22 @@
 <h1 align="center">
   <br>
-  <img alt="Universal Trakt Scrobbler" src="https://github.com/trakt-tools/universal-trakt-scrobbler/raw/master/src/images/uts-icon-128.png" width="150">
+  <img alt="Universal Scrob Scrobbler" src="https://github.com/trakt-tools/universal-trakt-scrobbler/raw/master/src/images/uts-icon-128.png" width="150">
   <br>
-  Universal Trakt Scrobbler
+  Universal Scrobbler
   <br>
 </h1>
-<h4 align="center">A universal scrobbler for Trakt.tv.</h4>
+<h4 align="center">A universal scrobbler for TV shows and movies on streaming services that sends data to Scrob.</h4>
 <p align="center">
-  <a href="https://github.com/trakt-tools/universal-trakt-scrobbler/releases">
-    <img alt="GitHub Release" src="https://img.shields.io/github/release/trakt-tools/universal-trakt-scrobbler.svg">
+  <a href="https://github.com/remotesojourner/universal-scrob-scrobbler/releases">
+    <img alt="GitHub Release" src="https://img.shields.io/github/release/remotesojourner/universal-scrob-scrobbler.svg">
   </a>
-	<a href="https://crowdin.com/project/universal-trakt-scrobbler" title="Crowdin" target="_blank">
-		<img src="https://badges.crowdin.net/universal-trakt-scrobbler/localized.svg">
-	</a>
 </p>
 <p align="center">
-  <a href="https://chrome.google.com/webstore/detail/universal-trakt-scrobbler/mbhadeogepkjdjeikcckdkjdjhhkhlid"><img src="https://github.com/trakt-tools/universal-trakt-scrobbler/raw/master/assets/chrome-badge.png" alt="Get the extension on Chrome"></a>
-  <a href="https://addons.mozilla.org/en-US/firefox/addon/universal-trakt-scrobbler"><img src="https://github.com/trakt-tools/universal-trakt-scrobbler/raw/master/assets/firefox-badge.png" alt="Get the extension on Firefox"></a>
+  <a href="https://chrome.google.com/webstore/detail/universal-scrob-scrobbler/mbhadeogepkjdjeikcckdkjdjhhkhlid"><img src="https://github.com/remotesojourner/universal-scrob-scrobbler/raw/master/assets/chrome-badge.png" alt="Get the extension on Chrome"></a>
+  <a href="https://addons.mozilla.org/en-US/firefox/addon/universal-scrob-scrobbler"><img src="https://github.com/remotesojourner/universal-scrob-scrobbler/raw/master/assets/firefox-badge.png" alt="Get the extension on Firefox"></a>
 </p>
 
-You can also install the extension manually by downloading the zip for your browser here: https://github.com/trakt-tools/universal-trakt-scrobbler/releases
+You can also install the extension manually by downloading the zip for your browser here: https://github.com/remotesojourner/universal-scrob-scrobbler/releases
 
 ### Loading the extension manually in Chrome
 
@@ -42,31 +39,28 @@ Extension will be enabled until you restart Firefox.
 - [Loading the extension manually in Chrome](#loading-the-extension-manually-in-chrome)
 - [Loading the extension manually in Firefox](#loading-the-extension-manually-in-firefox)
 - [Table of Contents](#table-of-contents)
-- [What is Universal Trakt Scrobbler?](#what-is-universal-trakt-scrobbler)
+- [What is Universal Scrobbler?](#what-is-universal-scrobbler)
 - [Why do I need this extension?](#why-do-i-need-this-extension)
 - [Which streaming services are supported?](#which-streaming-services-are-supported)
 - [How does the extension work?](#how-does-the-extension-work)
 - [Known Issues](#known-issues)
 - [Other Problems](#other-problems)
-- [Help Translate](#help-translate)
 - [Development](#development)
   - [How to add more streaming services](#how-to-add-more-streaming-services)
   - [How to add scrobbler/sync to streaming services](#how-to-add-scrobblersync-to-streaming-services)
 - [Credits](#credits)
 
-### What is Universal Trakt Scrobbler?
+### What is Universal Scrobbler?
 
-An extension that allows you to automatically scrobble TV shows and movies that you are watching, and sync your history, from your favorite streaming services to Trakt.tv.
+An extension that allows you to automatically scrobble TV shows and movies that you are watching, and sync your history, from your favorite streaming services (such as Netflix, Amazon Prime Video, Disney+, etc.) to your Scrob server.
 
 ### Why do I need this extension?
 
-If you want to scrobble / sync from Netflix, this is the only Trakt.tv [plugin](https://trakt.tv/apps) that does it. In the future, we'll be adding support for more streaming services, so it will also serve as a single extension that works for multiple services.
+It seamlessly tracks your playback across major streaming platforms in real-time, matching titles, seasons, and episode numbers, and syncing watch history directly to your Scrob account.
 
 ### Which streaming services are supported?
 
 <!-- services-start -->
-<!-- Update this section with `npx trakt-tools dev update-readme` -->
-
 | Streaming Service | Scrobble | Sync | Limitations                      |
 | :---------------: | :------: | :--: | :------------------------------- |
 |   Amazon Prime    |    ✔️    |  ✔️  | Scrobbling only works in English |
@@ -77,8 +71,7 @@ If you want to scrobble / sync from Netflix, this is the only Trakt.tv [plugin](
 |      Disney+      |    ✔️    |  ❌  | -                                |
 |        Go3        |    ✔️    |  ❌  | -                                |
 |     GoPlay BE     |    ✔️    |  ❌  | -                                |
-|      HBO Go       |    ✔️    |  ❌  | -                                |
-|      HBO Max      |    ✔️    |  ✔️  | -                                |
+|   Max / HBO Max   |    ✔️    |  ✔️  | -                                |
 |      Hotstar      |    ✔️    |  ❌  | -                                |
 |      Kijk.nl      |    ✔️    |  ❌  | -                                |
 |       MUBI        |    ✔️    |  ✔️  | -                                |
@@ -87,22 +80,19 @@ If you want to scrobble / sync from Netflix, this is the only Trakt.tv [plugin](
 |     Player.pl     |    ✔️    |  ❌  | -                                |
 |  Polsatboxgo.pl   |    ✔️    |  ❌  | -                                |
 |    SkyShowtime    |    ✔️    |  ❌  | -                                |
-|       Star+       |    ✔️    |  ❌  | -                                |
 |    Streamz BE     |    ✔️    |  ❌  | -                                |
-|      Stremio      |    ✔️    |  ❌  | -                                |
 |      Tet TV+      |    ✔️    |  ❌  | -                                |
 |     TV 2 PLAY     |    ✔️    |  ✔️  | -                                |
 |      Viaplay      |    ✔️    |  ✔️  | -                                |
 |       Vidio       |    ✔️    |  ❌  | -                                |
-|     VRTNu BE      |    ✔️    |  ❌  | -                                |
+|     VRT MAX BE    |    ✔️    |  ❌  | -                                |
 |     VTMGo BE      |    ✔️    |  ❌  | -                                |
-|    Wakanim.tv     |    ✔️    |  ❌  | -                                |
 
 <!-- services-end -->
 
 ### How does the extension work?
 
-It extracts information about the TV shows / movies that you are watching / have watched by scraping the page or using the stremaing service API and sends the data to Trakt using the [Trakt API](https://trakt.docs.apiary.io/).
+It extracts information about the TV shows / movies that you are watching / have watched by scraping the page or using the streaming service API and sends the data to your Scrob server.
 
 ### Known Issues
 
@@ -111,86 +101,12 @@ It extracts information about the TV shows / movies that you are watching / have
 
 ### Other Problems
 
-If you find any other problems or have suggestions or questions, feel free to [open an issue](https://github.com/trakt-tools/universal-trakt-scrobbler/issues/new).
-
-### Help Translate
-
-Help us translate the extension through Crowdin at https://crowdin.com/project/universal-trakt-scrobbler. You'll need to create a Crowdin account (you can sign in with your GitHub account). Then select the language you wish to contribute to and start translating (don't forget to save your translations). If a language isn't available yet, open an issue [here](https://github.com/trakt-tools/universal-trakt-scrobbler/issues/new?assignees=trakt-tools-bot&labels=new+language&template=new-language.md&title=Add+new+language%3A+%5BLANGUAGE%5D).
-
-You can also vote for translations, which helps confirm good translations and flag inaccurate ones.
-
-If you want to get credit on GitHub for the translations, make sure your Crowdin username is the same as the GitHub one, or similar, so we know it's you. Once the PR is merged, you'll appear as one of the contributors in the commit. Example:
-
-![Screenshot 2022-03-11 100844](https://user-images.githubusercontent.com/25509361/157872624-e5f70050-8e29-4f21-b0b6-0e2e274c3ce2.png)
-
-**For reviewers:**
-
-Never delete the `translations` branch after merging PRs from Crowdin, as Crowdin uses it to sync changes. When merging PRs, make sure to change the generic "New Crowdin updates" title to a more specific title detailing exactly which languages were updated.
-
-### Development
-
-1. Create an application in the [Trakt API](https://trakt.tv/oauth/applications/new) (don't forget to check the `/scrobble` permission).
-2. In `Redirect uri:`, put `https://trakt.tv/apps`.
-3. In `Javascript (cors) origins:`, put `moz-extension://` and `chrome-extension://`.
-4. Copy the `.env.example` example file and change the Trakt.tv credentials. Make sure to also set the extension ID to an arbitrary but unique string, otherwise some browser features might not be available to the extension. The "CHROME_EXTENSION_KEY" can remain empty.
-
-```bash
-cp .env.example .env
-```
-
-5. Use [nvm](https://github.com/creationix/nvm) to run the correct version of Node.js. You may need to install it with `nvm install "lts/*"`
-
-```bash
-nvm use
-```
-
-6. Install the dependencies. You may need to install pnpm with `npm install -g pnpm`
-
-```bash
-pnpm install
-```
-
-- To run in development mode:
-
-```bash
-pnpm start
-```
-
-- In your browser's extension page in development mode, load the extension from `src/build/{browser}`
-
-- To get the build version for development mode (does not watch files):
-
-```bash
-pnpm run build-dev
-```
-
-- To get the build version for production mode (generates app.zip, ready for deployment):
-
-```bash
-pnpm run build
-pnpm run zip
-```
-
-#### How to add more streaming services
-
-- Run `npx trakt-tools dev create-service`. It will prompt you a few questions about the service and automatically generate all the necessary files. If you want to provide all the information at once without being prompted, run `npx trakt-tools dev create-service --help` to see the options.
-- Go to the generated files and adjust them accordingly. You can see the files of the other services for some reference.
-
-#### How to add scrobbler/sync to streaming services
-
-- If a service is missing either the scrobbler or the sync function, you can run `npx trakt-tools dev update-service` to automatically generate all the missing files.
+If you find any other problems or have suggestions or questions, feel free to [open an issue](https://github.com/remotesojourner/universal-scrob-scrobbler/issues/new).
 
 ### Credits
 
-This extension is based on [traktflix](https://github.com/tegon/traktflix), the original Netflix sync developed by [tegon](https://github.com/tegon), which was discontinued in favor of Universal Trakt Sync.
+This project is a fork of [Universal Trakt Scrobbler](https://github.com/trakt-tools/universal-trakt-scrobbler) by [trakt-tools](https://github.com/trakt-tools).
 
-<h3 align="center">
-  <img alt="TMDb API" src="https://github.com/trakt-tools/universal-trakt-scrobbler/raw/master/assets/tmdb-api-logo.png" width="150">
-  <img alt="Trakt API" src="https://github.com/trakt-tools/universal-trakt-scrobbler/raw/master/assets/trakt-api-logo.png" width="150">
-</h3>
-
-This product uses the TMDb API, but is not endorsed or certified by TMDb.
-
-This product uses the Trakt.tv API.
+It is designed to scrobble and sync watch history to [Scrob](https://github.com/ellite/scrob), a lightweight self-hosted media scrobble server created by [ellite](https://github.com/ellite).
 
 [LICENSE](LICENSE)

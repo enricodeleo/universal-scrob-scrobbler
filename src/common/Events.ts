@@ -1,4 +1,3 @@
-import { TraktSearchItem } from '@apis/TraktSearch';
 import {
 	ScrobblingDetails,
 	StorageValuesOptions,
@@ -7,7 +6,7 @@ import {
 import { DispatchEventMessage, Messaging } from '@common/Messaging';
 import { Shared } from '@common/Shared';
 import { ScrobbleItem, ScrobbleItemValues } from '@models/Item';
-import { TraktItemValues } from '@models/TraktItem';
+import { ScrobItemValues } from '@models/ScrobItem';
 import { AlertColor } from '@mui/material';
 import { SyncStore } from '@stores/SyncStore';
 import { ReactNode } from 'react';
@@ -31,13 +30,10 @@ export interface EventData {
 	SNACKBAR_SHOW: SnackbarShowData;
 	MISSING_WATCHED_DATE_DIALOG_SHOW: MissingWatchedDateDialogShowData;
 	MISSING_WATCHED_DATE_ADDED: MissingWatchedDateAddedData;
-	CORRECTION_DIALOG_SHOW: CorrectionDialogShowData;
-	ITEM_CORRECTED: ItemCorrectedData;
-	SCROBBLING_ITEM_CORRECTED: ItemCorrectedData;
 	SYNC_OPTIONS_CHANGE: PartialDeep<StorageValuesSyncOptions>;
 	SYNC_STORE_RESET: SuccessData;
 	SERVICE_HISTORY_LOAD_ERROR: ErrorData;
-	TRAKT_HISTORY_LOAD_ERROR: ErrorData;
+	SCROB_HISTORY_LOAD_ERROR: ErrorData;
 	HISTORY_SYNC_SUCCESS: HistorySyncSuccessData;
 	HISTORY_SYNC_ERROR: ErrorData;
 	REQUESTS_CANCEL: RequestsCancelData;
@@ -64,7 +60,7 @@ export interface LoginSuccessData {
 }
 
 export interface ScrobbleSuccessData {
-	item?: TraktItemValues;
+	item?: ScrobItemValues;
 	scrobbleType: number;
 }
 
@@ -73,7 +69,7 @@ export type ScrobbleErrorData = ScrobbleSuccessData & {
 };
 
 export interface SearchSuccessData {
-	searchItem: TraktSearchItem;
+	searchItem: unknown;
 }
 
 export interface SearchErrorData {
@@ -102,21 +98,8 @@ export interface MissingWatchedDateAddedData {
 	newItems: ScrobbleItem[];
 }
 
-export interface CorrectionDialogShowData {
-	item?: ScrobbleItem;
-	isScrobblingItem: boolean;
-}
-
-export interface ItemCorrectedData {
-	oldItem: ScrobbleItemValues;
-	newItem: ScrobbleItemValues;
-}
-
 export interface HistorySyncSuccessData {
-	added: {
-		episodes: number;
-		movies: number;
-	};
+	added: Record<string, unknown>;
 }
 
 export interface RequestsCancelData {
@@ -148,134 +131,73 @@ export type EventDispatcherListeners = Record<
 	Record<string, EventDispatcherListener<any>[]>
 >;
 
-export type EventDispatcherListener<K extends Event> = (data: EventData[K]) => void | Promise<void>;
+export type EventDispatcherListener<T extends Event = Event> = (
+	data: EventData[T],
+	eventSpecifier: string | null
+) => Promisable<void>;
 
 class _EventDispatcher {
-	/**
-	 * Events that are dispatched to all extension pages and content pages.
-	 *
-	 * **Make sure that all data for global events can be serialized (for example, functions and class instances cannot be passed through global events).**
-	 */
-	GLOBAL_EVENTS: Event[] = [
-		'SCROBBLE_SUCCESS',
-		'SCROBBLE_ERROR',
-		'SCROBBLE_START',
-		'SCROBBLE_PAUSE',
-		'SCROBBLE_STOP',
-		'SCROBBLE_PROGRESS',
-		'SEARCH_ERROR',
-		'SCROBBLING_ITEM_CORRECTED',
-		'STORAGE_OPTIONS_CHANGE',
-		'CONTENT_SCRIPT_CONNECT',
-		'CONTENT_SCRIPT_DISCONNECT',
-		'REQUESTS_CANCEL',
-	];
-
-	globalSpecifier = 'all';
-	listeners: EventDispatcherListeners;
-
-	constructor() {
-		this.listeners = {};
-	}
+	private listeners: EventDispatcherListeners = {};
 
 	init() {
 		// Do nothing
 	}
 
-	subscribe<K extends Event>(
-		eventType: K,
+	subscribe<T extends Event>(
+		eventType: T,
 		eventSpecifier: string | null,
-		listener: EventDispatcherListener<K>
-	): void {
-		if (!eventSpecifier) {
-			eventSpecifier = this.globalSpecifier;
-		}
-		if (!this.listeners[eventType]) {
-			this.listeners[eventType] = {};
-		}
-		if (!this.listeners[eventType][eventSpecifier]) {
-			this.listeners[eventType][eventSpecifier] = [];
-		}
-		this.listeners[eventType][eventSpecifier].push(listener);
+		listener: EventDispatcherListener<T>
+	) {
+		const key = this.getKey(eventType, eventSpecifier);
+		this.listeners[key] = this.listeners[key] || {};
+		this.listeners[key][Shared.pageType] = this.listeners[key][Shared.pageType] || [];
+		this.listeners[key][Shared.pageType].push(listener);
 	}
 
-	unsubscribe<K extends Event>(
-		eventType: K,
+	unsubscribe<T extends Event>(
+		eventType: T,
 		eventSpecifier: string | null,
-		listener: EventDispatcherListener<K>
-	): void {
-		if (!this.listeners[eventType]) {
-			return;
-		}
-		if (!eventSpecifier) {
-			eventSpecifier = this.globalSpecifier;
-		}
-		if (this.listeners[eventType][eventSpecifier]) {
-			this.listeners[eventType][eventSpecifier] = this.listeners[eventType][eventSpecifier].filter(
-				(fn) => fn !== listener
+		listener: EventDispatcherListener<T>
+	) {
+		const key = this.getKey(eventType, eventSpecifier);
+		if (this.listeners[key]?.[Shared.pageType]) {
+			this.listeners[key][Shared.pageType] = this.listeners[key][Shared.pageType].filter(
+				(l) => l !== listener
 			);
 		}
 	}
 
-	async dispatch<K extends Event>(
-		eventType: K,
+	async dispatch<T extends Event>(
+		eventType: T,
 		eventSpecifier: string | null,
-		data: EventData[K],
-		isExternal = false
-	): Promise<void> {
-		if (isExternal && eventType === 'STORAGE_OPTIONS_CHANGE') {
-			const { options, syncOptions } = data as StorageOptionsChangeData;
-			if (options) {
-				Shared.storage.updateOptions(options);
-			}
-			if (syncOptions) {
-				Shared.storage.updateSyncOptions(syncOptions);
+		data: EventData[T],
+		isFromBackground = false
+	) {
+		const key = this.getKey(eventType, eventSpecifier);
+		if (this.listeners[key]?.[Shared.pageType]) {
+			for (const listener of this.listeners[key][Shared.pageType]) {
+				await listener(data, eventSpecifier);
 			}
 		}
-
-		// Dispatch the event to all other pages
-		if (!isExternal && this.GLOBAL_EVENTS.includes(eventType)) {
-			const message: DispatchEventMessage = {
+		if (!isFromBackground) {
+			const message: DispatchEventMessage<T> = {
 				action: 'dispatch-event',
 				eventType,
 				eventSpecifier,
 				data,
 			};
-			switch (Shared.pageType) {
-				case 'background':
-				case 'popup':
-					void Messaging.toAllContent(message);
-				// falls through
-				case 'content':
-					void Messaging.toExtension(message);
-					break;
+			if (Shared.pageType === 'background') {
+				await Messaging.toAllContent(message);
+			} else {
+				await Messaging.toExtension(message);
 			}
 		}
+	}
 
-		if (!eventSpecifier) {
-			eventSpecifier = this.globalSpecifier;
-		}
-		const listeners = this.listeners[eventType] && [
-			...(this.listeners[eventType][this.globalSpecifier] ?? []),
-			...((eventSpecifier !== this.globalSpecifier && this.listeners[eventType][eventSpecifier]) ||
-				[]),
-		];
-		if (!listeners) {
-			return;
-		}
-		for (const listener of listeners) {
-			try {
-				await listener(data);
-			} catch (err) {
-				if (Shared.errors.validate(err)) {
-					Shared.errors.log('Failed to dispatch.', err);
-				}
-				throw err;
-			}
-		}
+	getKey(eventType: Event, eventSpecifier: string | null) {
+		return `${eventType}_${eventSpecifier ?? ''}`;
 	}
 }
 
 export const EventDispatcher = new _EventDispatcher();
-
 Shared.events = EventDispatcher;

@@ -1,7 +1,6 @@
 declare interface Window {
 	netflix?: import('@/netflix/NetflixApi').NetflixGlobalObject;
 	player?: import('@/nrk/NrkApi').NrkGlobalObject;
-	Rollbar?: import('rollbar');
 }
 
 declare let XPCNativeWrapper: <T>(value: T) => T;

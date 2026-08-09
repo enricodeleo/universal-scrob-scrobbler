@@ -7,9 +7,6 @@ export interface SharedValues {
 	DATABASE_URL: string;
 
 	environment: string;
-	clientId: string;
-	clientSecret: string;
-	rollbarToken: string;
 	tmdbApiKey: string;
 
 	manifestVersion: number;
@@ -51,12 +48,9 @@ let initPromiseResolve: (value: unknown) => void = () => {
 const initPromise = new Promise((resolve) => (initPromiseResolve = resolve));
 
 export const Shared: SharedValues = {
-	DATABASE_URL: 'https://uts.rafaelgomes.xyz/api',
+	DATABASE_URL: '',
 
 	environment: process.env.REACT_ENV || '',
-	clientId: process.env.TRAKT_CLIENT_ID || '',
-	clientSecret: process.env.TRAKT_CLIENT_SECRET || '',
-	rollbarToken: process.env.ROLLBAR_TOKEN || '',
 	tmdbApiKey: process.env.TMDB_API_KEY || '',
 
 	manifestVersion: browser.runtime.getManifest().manifest_version,

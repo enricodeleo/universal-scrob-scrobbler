@@ -1,5 +1,3 @@
-import { CorrectionApi } from '@apis/CorrectionApi';
-import { TmdbApi } from '@apis/TmdbApi';
 import { ScrobblingDetails } from '@common/BrowserStorage';
 import { Shared } from '@common/Shared';
 import { Center } from '@components/Center';
@@ -58,7 +56,6 @@ export const HomePage = (): JSX.Element => {
 				scrobblingItem: data.item
 					? createScrobbleItem({
 							...data.item,
-							suggestions: prevContent.scrobblingItem?.suggestions,
 							imageUrl: prevContent.scrobblingItem?.imageUrl,
 						})
 					: null,
@@ -87,7 +84,6 @@ export const HomePage = (): JSX.Element => {
 				scrobblingItem: data.item
 					? createScrobbleItem({
 							...data.item,
-							suggestions: prevContent.scrobblingItem?.suggestions,
 							imageUrl: prevContent.scrobblingItem?.imageUrl,
 						})
 					: null,
@@ -97,32 +93,6 @@ export const HomePage = (): JSX.Element => {
 		startListeners();
 		return stopListeners;
 	}, []);
-
-	useEffect(() => {
-		const loadData = async () => {
-			if (
-				!content.scrobblingItem ||
-				(Shared.storage.options.sendReceiveSuggestions &&
-					typeof content.scrobblingItem.suggestions !== 'undefined') ||
-				typeof content.scrobblingItem.imageUrl !== 'undefined'
-			) {
-				return;
-			}
-			let newItem = content.scrobblingItem;
-			if (Shared.storage.options.sendReceiveSuggestions) {
-				[newItem] = await CorrectionApi.loadSuggestions([newItem]);
-			}
-			if (Shared.storage.options.loadImages) {
-				[newItem] = await TmdbApi.loadImages([newItem]);
-			}
-			setContent((prevContent) => ({
-				...prevContent,
-				scrobblingItem: newItem,
-			}));
-		};
-
-		void loadData();
-	}, [content.scrobblingItem]);
 
 	let component = null;
 	if (content.isLoading) {

@@ -227,7 +227,7 @@ export abstract class ScrobbleParser {
 			return null;
 		}
 
-		const item = await this.api.getItem(id);
+		const item = this.api.getItem ? await this.api.getItem(id) : null;
 		this.failingId = item ? null : id;
 		return item;
 	}

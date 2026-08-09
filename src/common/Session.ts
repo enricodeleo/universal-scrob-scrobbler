@@ -1,4 +1,4 @@
-import { TraktAuth } from '@apis/TraktAuth';
+import { ScrobAuth } from '@apis/ScrobAuth';
 import { Messaging } from '@common/Messaging';
 import { Shared } from '@common/Shared';
 
@@ -11,12 +11,12 @@ class _Session {
 
 	async checkLogin(): Promise<void> {
 		try {
-			const auth = await TraktAuth.validateToken();
-			if (auth && auth.access_token) {
+			const auth = await ScrobAuth.validateConnection();
+			if (auth && auth.instanceUrl && auth.apiKey) {
 				this.isLoggedIn = true;
 				await Shared.events.dispatch('LOGIN_SUCCESS', null, { auth });
 			} else {
-				throw new Error(JSON.stringify(auth));
+				throw new Error('Not connected to Scrob');
 			}
 		} catch (err) {
 			this.isLoggedIn = false;
@@ -26,19 +26,19 @@ class _Session {
 		}
 	}
 
-	async login(): Promise<void> {
+	async login(instanceUrl: string, apiKey: string): Promise<void> {
 		try {
-			const auth = await Messaging.toExtension({ action: 'login' });
-			if (auth && auth.access_token) {
+			const auth = await Messaging.toExtension({ action: 'login', instanceUrl, apiKey });
+			if (auth && auth.instanceUrl && auth.apiKey) {
 				this.isLoggedIn = true;
 				await Shared.events.dispatch('LOGIN_SUCCESS', null, { auth });
 			} else {
-				throw new Error(JSON.stringify(auth));
+				throw new Error('Invalid Scrob connection');
 			}
 		} catch (err) {
 			this.isLoggedIn = false;
 			if (Shared.errors.validate(err)) {
-				Shared.errors.error('Failed to log in.', err);
+				Shared.errors.error('Failed to connect to Scrob.', err);
 				await Shared.events.dispatch('LOGIN_ERROR', null, { error: err });
 			}
 		}
@@ -52,16 +52,9 @@ class _Session {
 		} catch (err) {
 			this.isLoggedIn = true;
 			if (Shared.errors.validate(err)) {
-				Shared.errors.error('Failed to log out.', err);
+				Shared.errors.error('Failed to disconnect from Scrob.', err);
 				await Shared.events.dispatch('LOGOUT_ERROR', null, { error: err });
 			}
-		}
-	}
-
-	async finishLogin(): Promise<void> {
-		const redirectUrl = window.location.search;
-		if (redirectUrl.includes('code')) {
-			await Messaging.toExtension({ action: 'finish-login', redirectUrl });
 		}
 	}
 }

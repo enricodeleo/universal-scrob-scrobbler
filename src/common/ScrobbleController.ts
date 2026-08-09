@@ -1,11 +1,10 @@
 import { ServiceApi } from '@apis/ServiceApi';
-import { TraktScrobble } from '@apis/TraktScrobble';
-import { TraktSearch } from '@apis/TraktSearch';
+import { ScrobScrobble } from '@apis/ScrobScrobble';
+import { ScrobSearch } from '@apis/ScrobSearch';
 import { Cache } from '@common/Cache';
-import { ItemCorrectedData, StorageOptionsChangeData } from '@common/Events';
+import { StorageOptionsChangeData } from '@common/Events';
 import { getScrobbleParser, ScrobbleParser } from '@common/ScrobbleParser';
 import { Shared } from '@common/Shared';
-import { createTraktScrobbleItem } from '@models/TraktItem';
 
 const scrobbleControllers = new Map<string, ScrobbleController>();
 
@@ -27,7 +26,6 @@ export class ScrobbleController {
 	private reachedScrobbleThreshold = false;
 	private scrobbleThreshold = 80.0;
 	private progress = 0.0;
-	private hasAddedListeners = false;
 
 	constructor(parser: ScrobbleParser) {
 		this.parser = parser;
@@ -35,27 +33,12 @@ export class ScrobbleController {
 	}
 
 	init(): void {
-		this.checkListeners();
 		Shared.events.subscribe('STORAGE_OPTIONS_CHANGE', null, this.onStorageOptionsChange);
 	}
 
 	onStorageOptionsChange = (data: StorageOptionsChangeData): void => {
-		const serviceOption = data.options?.services?.[this.api.id];
-		if (serviceOption && 'scrobble' in serviceOption) {
-			this.checkListeners();
-		}
+		// Handle options change if needed
 	};
-
-	checkListeners(): void {
-		const { scrobble } = Shared.storage.options?.services?.[this.api.id] ?? {};
-		if (scrobble && !this.hasAddedListeners) {
-			Shared.events.subscribe('SCROBBLING_ITEM_CORRECTED', null, this.onItemCorrected);
-			this.hasAddedListeners = true;
-		} else if (!scrobble && this.hasAddedListeners) {
-			Shared.events.unsubscribe('SCROBBLING_ITEM_CORRECTED', null, this.onItemCorrected);
-			this.hasAddedListeners = false;
-		}
-	}
 
 	async startScrobble(): Promise<void> {
 		const item = this.parser.getItem();
@@ -64,40 +47,37 @@ export class ScrobbleController {
 		}
 		this.reachedScrobbleThreshold = false;
 		this.progress = 0.0;
-		if (typeof item.trakt === 'undefined') {
-			const caches = await Cache.get(['itemsToTraktItems', 'traktItems', 'urlsToTraktItems']);
-			const { corrections } = await Shared.storage.get(['corrections']);
-			const databaseId = item.getDatabaseId();
-			const correction = corrections?.[databaseId];
+		if (typeof item.scrob === 'undefined') {
+			const caches = await Cache.get(['itemsToScrobItems', 'scrobItems', 'urlsToScrobItems']);
 			try {
-				item.trakt = await TraktSearch.find(item, caches, correction);
+				item.scrob = await ScrobSearch.find(item, caches);
 			} catch (err) {
-				item.trakt = null;
+				item.scrob = null;
 				throw err;
 			}
 			await Cache.set(caches);
 		}
-		if (!item.trakt) {
+		if (!item.scrob) {
 			return;
 		}
-		item.trakt.progress = item.progress;
-		await TraktScrobble.start(item);
+		item.scrob.progress = item.progress;
+		await ScrobScrobble.start(item);
 	}
 
 	async pauseScrobble(): Promise<void> {
 		const item = this.parser.getItem();
-		if (!item?.trakt) {
+		if (!item?.scrob) {
 			return;
 		}
-		await TraktScrobble.pause(item);
+		await ScrobScrobble.pause(item);
 	}
 
 	async stopScrobble(): Promise<void> {
 		const item = this.parser.getItem();
-		if (!item?.trakt) {
+		if (!item?.scrob) {
 			return;
 		}
-		await TraktScrobble.stop(item);
+		await ScrobScrobble.stop(item);
 		this.parser.clearItem();
 		this.reachedScrobbleThreshold = false;
 		this.progress = 0.0;
@@ -109,12 +89,11 @@ export class ScrobbleController {
 			return;
 		}
 		item.progress = progress;
-		if (!item?.trakt) {
+		if (!item?.scrob) {
 			return;
 		}
-		item.trakt.progress = progress;
-		if (!this.reachedScrobbleThreshold && item.trakt.progress > this.scrobbleThreshold) {
-			// Update the stored progress after reaching the scrobble threshold to make sure that the item is scrobbled on tab close.
+		item.scrob.progress = progress;
+		if (!this.reachedScrobbleThreshold && item.scrob.progress > this.scrobbleThreshold) {
 			this.reachedScrobbleThreshold = true;
 			const { scrobblingDetails } = await Shared.storage.get('scrobblingDetails');
 			if (scrobblingDetails) {
@@ -127,7 +106,6 @@ export class ScrobbleController {
 			(this.progress === 0.0 && item.progress > 1.0) ||
 			item.progress - this.progress > 10.0
 		) {
-			// Update the scrobbling item once the progress reaches 1% and then every time it increases by 10%
 			this.progress = item.progress;
 			const { scrobblingDetails } = await Shared.storage.get('scrobblingDetails');
 			if (scrobblingDetails) {
@@ -137,18 +115,4 @@ export class ScrobbleController {
 			}
 		}
 	}
-
-	private onItemCorrected = async (data: ItemCorrectedData): Promise<void> => {
-		if (!data.newItem.trakt) {
-			return;
-		}
-		const item = this.parser.getItem();
-		if (!item) {
-			return;
-		}
-		await this.updateProgress(0.0);
-		await this.stopScrobble();
-		item.trakt = createTraktScrobbleItem(data.newItem.trakt);
-		await this.startScrobble();
-	};
 }
