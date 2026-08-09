@@ -2,7 +2,7 @@
   <br>
   <img alt="Universal Scrob Scrobbler" src="https://github.com/trakt-tools/universal-trakt-scrobbler/raw/master/src/images/uts-icon-128.png" width="150">
   <br>
-  Universal Scrobbler
+  Universal Scrob Scrobbler
   <br>
 </h1>
 <h4 align="center">A universal scrobbler for TV shows and movies on streaming services that sends data to Scrob.</h4>
