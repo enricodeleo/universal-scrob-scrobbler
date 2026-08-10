@@ -44,7 +44,7 @@ class _CraveParser extends ScrobbleParser {
 
 	protected parseItemFromDom(): Promise<ScrobbleItem | null> {
 		const subtitle =
-			document.querySelector('[class^=jasper-player-title__subtitle]')?.innerHTML ?? '';
+			document.querySelector('[class^=jasper-player-title__subtitle]')?.textContent ?? '';
 		const extractedData = /S(?<season>\d+) E(?<number>\d+): (?<episodeTitle>.+)/.exec(subtitle);
 		if (!extractedData?.groups) {
 			return Promise.resolve(null);

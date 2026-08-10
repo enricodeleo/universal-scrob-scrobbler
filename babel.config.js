@@ -3,13 +3,21 @@ module.exports = {
 		[
 			'@babel/plugin-transform-runtime',
 			{
-				regenerator: true,
+				regenerator: false,
 			},
 		],
 	],
 	presets: [
 		'@babel/typescript',
-		'@babel/preset-env',
+		[
+			'@babel/preset-env',
+			{
+				targets: {
+					firefox: '109',
+					chrome: '109',
+				},
+			},
+		],
 		[
 			'@babel/preset-react',
 			{

@@ -227,6 +227,9 @@ const getWebpackConfig = (env: Environment): webpack.Configuration => {
 			ignored: /node_modules/,
 			poll: 1000,
 		},
+		node: {
+			global: false,
+		},
 	};
 };
 
@@ -234,6 +237,17 @@ const getManifest = (browserName: string, isDev: boolean): string => {
 	const manifest: Partial<WebExtManifest.WebExtensionManifest> & {
 		key?: string;
 		optional_host_permissions?: string[];
+		browser_specific_settings?: {
+			gecko?: {
+				id?: string;
+				strict_min_version?: string;
+				strict_max_version?: string;
+				update_url?: string;
+				data_collection_permissions?: {
+					required?: string[];
+				};
+			};
+		};
 	} = {
 		name: isDev ? '[dev] Universal Scrob Scrobbler' : 'Universal Scrob Scrobbler',
 		version: packageJson.version,
@@ -298,6 +312,10 @@ const getManifest = (browserName: string, isDev: boolean): string => {
 			manifest.browser_specific_settings = {
 				gecko: {
 					id: process.env.FIREFOX_EXTENSION_ID || 'universal-scrob-scrobbler@extension',
+					strict_min_version: '142.0',
+					data_collection_permissions: {
+						required: ['none'],
+					},
 				},
 			};
 			break;
