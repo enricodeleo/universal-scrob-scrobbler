@@ -251,14 +251,12 @@ const getManifest = (browserName: string, isDev: boolean): string => {
 				service_worker: 'background.js',
 			};
 			manifest.optional_permissions = ['notifications'];
-			manifest.optional_host_permissions = [
-				'*://api.rollbar.com/*',
+			manifest.permissions = ['alarms', 'identity', 'scripting', 'storage', 'unlimitedStorage'];
+			manifest.host_permissions = [
 				...Object.values(services)
 					.map((service) => service.hostPatterns)
 					.flat(),
 			];
-			manifest.permissions = ['alarms', 'identity', 'scripting', 'storage', 'unlimitedStorage'];
-			manifest.host_permissions = ['<all_urls>'];
 			manifest.action = {
 				default_icon: {
 					19: 'images/uts-icon-19.png',
@@ -284,7 +282,6 @@ const getManifest = (browserName: string, isDev: boolean): string => {
 				'tabs',
 				'webRequest',
 				'webRequestBlocking',
-				'*://api.rollbar.com/*',
 				...Object.values(services)
 					.map((service) => service.hostPatterns)
 					.flat(),
