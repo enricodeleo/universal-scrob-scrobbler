@@ -12,8 +12,8 @@
   </a>
 </p>
 <p align="center">
-  <a href="https://chrome.google.com/webstore/detail/universal-scrob-scrobbler/mbhadeogepkjdjeikcckdkjdjhhkhlid"><img src="https://github.com/remotesojourner/universal-scrob-scrobbler/raw/master/assets/chrome-badge.png" alt="Get the extension on Chrome"></a>
-  <a href="https://addons.mozilla.org/en-US/firefox/addon/universal-scrob-scrobbler"><img src="https://github.com/remotesojourner/universal-scrob-scrobbler/raw/master/assets/firefox-badge.png" alt="Get the extension on Firefox"></a>
+  <a href="https://chrome.google.com/webstore/detail/universal-scrob-scrobbler/iopngfcbfklgnpjacladokjnlnenkeki"><img src="https://github.com/remotesojourner/universal-scrob-scrobbler/raw/master/assets/chrome-badge.png" alt="Get the extension on Chrome"></a>
+  <a href="https://addons.mozilla.org/en-GB/firefox/addon/universal-scrob-scrobbler"><img src="https://github.com/remotesojourner/universal-scrob-scrobbler/raw/master/assets/firefox-badge.png" alt="Get the extension on Firefox"></a>
 </p>
 
 You can also install the extension manually by downloading the zip for your browser here: https://github.com/remotesojourner/universal-scrob-scrobbler/releases
