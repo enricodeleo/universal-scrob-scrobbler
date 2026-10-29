@@ -265,6 +265,7 @@ const getManifest = (browserName: string, isDev: boolean): string => {
 				service_worker: 'background.js',
 			};
 			manifest.optional_permissions = ['notifications'];
+			manifest.optional_host_permissions = ['http://*/*', 'https://*/*'];
 			manifest.permissions = ['alarms', 'identity', 'scripting', 'storage', 'unlimitedStorage'];
 			manifest.host_permissions = [
 				...Object.values(services)
